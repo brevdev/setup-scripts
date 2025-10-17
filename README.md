@@ -22,7 +22,7 @@ Brev gives you instant access to powerful cloud hardware (GPUs, CPUs, whatever y
 ```bash
 brev start https://github.com/your-org/your-project
 # Coffee break ☕
-# 2 minutes later: fully configured dev environment, ready to code
+# Come back to a fully configured dev environment, ready to code
 ```
 
 Setup scripts are how you define "what does ready to code mean" for your project. They're bash scripts that run once when your environment spins up, installing dependencies and configuring everything automatically.
@@ -30,8 +30,8 @@ Setup scripts are how you define "what does ready to code mean" for your project
 ## Why This Matters
 
 **For Individual Developers:**
-- Spin up new environments in minutes, not hours
-- Experiment fearlessly - break something? `brev reset` and you're back in 2 minutes
+- Spin up new environments quickly, not spending hours on setup
+- Experiment fearlessly - break something? `brev reset` and you're back to working
 - Work on multiple projects without dependency conflicts
 - Access GPUs/powerful hardware without the setup headache
 
@@ -41,7 +41,7 @@ Setup scripts are how you define "what does ready to code mean" for your project
 - Environment changes are code-reviewed and version-controlled
 - Onboarding is automatic
 
-**Real Example:** A data science team reduced new hire onboarding from 2 days to 15 minutes. Their setup script installs Python, CUDA, PyTorch, downloads their models, and configures their data pipelines. Every single time. Perfectly.
+**Real Example:** A data science team reduced new hire onboarding from days to a single automated process. Their setup script installs Python, CUDA, PyTorch, downloads their models, and configures their data pipelines. Every single time. Perfectly.
 
 ## Quick Start: Your First Setup Script
 
@@ -70,7 +70,7 @@ That's it. Commit this to your repo as `.brev/setup.sh`, then:
 brev start https://github.com/your-org/your-repo
 ```
 
-Brev will automatically detect and run your setup script. Two minutes later, you have a fully configured development environment.
+Brev will automatically detect and run your setup script. When it's done, you have a fully configured development environment.
 
 ### Other Ways to Use Setup Scripts
 
@@ -92,15 +92,52 @@ brev start https://github.com/your-org/your-repo \
 
 ## Common Workflows
 
-**Start from a repo:**
+**Start a workspace (defaults to T4 GPU):**
 ```bash
 brev start https://github.com/your-org/your-repo
 ```
+
+**Specify GPU type:**
+```bash
+# L4 GPU (good price/performance for inference)
+brev start https://github.com/your-org/your-repo --gpu g2-standard-4
+
+# A100 GPU (for serious training)
+brev start https://github.com/your-org/your-repo --gpu a2-highgpu-1g
+
+# V100 GPU (older but reliable)
+brev start https://github.com/your-org/your-repo --gpu p3.2xlarge
+
+# CPU-only instance (cheaper for non-ML work)
+brev start https://github.com/your-org/your-repo --cpu 4x16
+```
+
+**Common GPU Options:**
+| GPU Type | Instance | Use Case | 
+|----------|----------|----------|
+| **T4** (default) | `n1-highmem-4:nvidia-tesla-t4:1` | Light ML, development, prototyping |
+| **L4** | `g2-standard-4` to `g2-standard-96` | Cost-effective inference, Stable Diffusion |
+| **A10** | `gpu_1x_a10` | Good balance for training & inference |
+| **V100** | `p3.2xlarge` to `p3.16xlarge` | Training, established workflows |
+| **A100** | `a2-highgpu-1g` to `a2-megagpu-16g` | LLM training, large models |
+| **A10G** | `g5.xlarge` to `g5.48xlarge` | AWS regions, ML inference |
+
+**CPU Options:**
+- `2x8` - 2 vCPU, 8GB RAM (default)
+- `4x16` - 4 vCPU, 16GB RAM
+- `8x32` - 8 vCPU, 32GB RAM
+
+For the full list of 300+ GPU/CPU combinations, see: https://brev.dev/docs/reference/gpu
 
 **Start from your current directory:**
 ```bash
 cd your-project/
 brev start .  # Automatically finds .brev/setup.sh
+```
+
+**Name your workspace:**
+```bash
+brev start https://github.com/your-org/your-repo --name my-experiment
 ```
 
 **Experimenting? Reset your environment:**
@@ -145,7 +182,7 @@ echo "✅ Ready to code!"
 
 ### ML/Data Science (Python + PyTorch + Jupyter)
 
-Spin up a GPU instance with PyTorch, CUDA, and Jupyter ready to go. No more "installing CUDA for 45 minutes" ever again.
+Spin up a GPU instance with PyTorch, CUDA, and Jupyter ready to go. No more manual CUDA installation ever again.
 
 ```bash
 #!/bin/bash
@@ -369,5 +406,5 @@ When you run `brev start`:
 
 ---
 
-**tl;dr:** Create `.brev/setup.sh` in your repo, install your dependencies, commit it, and `brev start` will give you a ready-to-code environment in 2 minutes. Stop wasting time on setup. Start building.
+**tl;dr:** Create `.brev/setup.sh` in your repo, install your dependencies, commit it, and `brev start` will give you a ready-to-code environment automatically. Stop wasting time on setup. Start building.
 
