@@ -154,6 +154,8 @@ brev recreate my-workspace
 
 ## Real-World Examples
 
+**Want a complete example with best practices?** Check out [`example-setup.sh`](./example-setup.sh) - a heavily commented template showing error handling, version pinning, PATH updates, and more.
+
 These aren't toy examples - they're battle-tested setups used by real teams. Copy, modify, and use them.
 
 ### Web App (Node.js + TypeScript)
