@@ -99,28 +99,33 @@ brev start https://github.com/your-org/your-repo
 
 **Specify GPU type:**
 ```bash
-# L4 GPU (good price/performance for inference)
-brev start https://github.com/your-org/your-repo --gpu g2-standard-4
+# Default GPU (GCP T4 - good for most workloads)
+brev start https://github.com/your-org/your-repo
 
-# A100 GPU (for serious training)
-brev start https://github.com/your-org/your-repo --gpu a2-highgpu-1g
+# A10G GPU (AWS - best price/performance)
+brev start https://github.com/your-org/your-repo --gpu g5.xlarge
 
-# V100 GPU (older but reliable)
+# V100 GPU (AWS - solid all-around, 1x)
 brev start https://github.com/your-org/your-repo --gpu p3.2xlarge
 
-# CPU-only instance (cheaper for non-ML work)
-brev start https://github.com/your-org/your-repo --cpu 4x16
+# V100 GPU (AWS - multi-GPU, 4x)
+brev start https://github.com/your-org/your-repo --gpu p3.8xlarge
+
+# A100 GPU (AWS - 8x for large models)
+brev start https://github.com/your-org/your-repo --gpu p4d.24xlarge
+
+# See GPU_INSTANCES.md for complete list
 ```
 
 **Common GPU Options:**
 | GPU Type | Instance | Use Case | 
 |----------|----------|----------|
-| **T4** (default) | `n1-highmem-4:nvidia-tesla-t4:1` | Light ML, development, prototyping |
-| **L4** | `g2-standard-4` to `g2-standard-96` | Cost-effective inference, Stable Diffusion |
-| **A10** | `gpu_1x_a10` | Good balance for training & inference |
-| **V100** | `p3.2xlarge` to `p3.16xlarge` | Training, established workflows |
-| **A100** | `a2-highgpu-1g` to `a2-megagpu-16g` | LLM training, large models |
-| **A10G** | `g5.xlarge` to `g5.48xlarge` | AWS regions, ML inference |
+| **T4** (default) | `n1-highmem-4:nvidia-tesla-t4:1` | Development, LoRA fine-tuning, inference |
+| **A10G** | `g5.xlarge` | Best price/performance, SDXL, inference |
+| **V100** | `p3.2xlarge` | Training 7B models, solid all-around |
+| **A100** | `p4d.24xlarge` | Large model training (70B+), 8x GPUs |
+
+**📖 Complete GPU list:** See [GPU_INSTANCES.md](GPU_INSTANCES.md)
 
 **CPU Options:**
 - `2x8` - 2 vCPU, 8GB RAM (default)
