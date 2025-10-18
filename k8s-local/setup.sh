@@ -50,7 +50,6 @@ sudo microk8s status --wait-ready
 # Enable essential addons
 echo "Enabling addons..."
 sudo microk8s enable dns
-sudo microk8s enable helm3
 sudo microk8s enable gpu  # NVIDIA GPU operator (Brev has NVIDIA drivers)
 
 # Export kubeconfig so kubectl works without group membership
@@ -90,6 +89,11 @@ chmod +x kubectl
 sudo mv kubectl /usr/local/bin/kubectl
 echo "✓ kubectl installed to /usr/local/bin/kubectl"
 
+# Install standalone helm (works without group membership!)
+echo "Installing standalone helm..."
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+echo "✓ helm installed to /usr/local/bin/helm"
+
 # Install k9s for terminal UI
 echo "Installing k9s..."
 wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz
@@ -108,15 +112,22 @@ echo ""
 echo "Verifying installation..."
 sudo microk8s status
 
-# Show which kubectl we're using
+# Show which binaries we're using
 echo ""
 echo "kubectl binary: $(which kubectl)"
+echo "helm binary: $(which helm)"
 
 # Test kubectl
 export KUBECONFIG=$HOME/.kube/config
 kubectl version --client
+echo ""
 echo "Testing cluster access..."
 kubectl get nodes 2>/dev/null && echo "✓ kubectl can access cluster without group membership!" || echo "⚠️  kubectl will work after sourcing shell config"
+
+# Test helm
+echo ""
+echo "Testing helm..."
+helm version --short 2>/dev/null && echo "✓ helm is ready!" || echo "⚠️  helm will work after sourcing shell config"
 
 echo ""
 echo "✅ Kubernetes ready!"
@@ -126,11 +137,12 @@ echo ""
 echo "Quick start (works immediately!):"
 echo "  kubectl get nodes"
 echo "  kubectl get pods -A"
+echo "  helm version"
 echo "  k9s"
 echo ""
 echo "💡 How it works:"
-echo "  - kubectl is standalone (/usr/local/bin/kubectl)"
-echo "  - Uses ~/.kube/config automatically"
+echo "  - kubectl, helm, k9s are standalone binaries (/usr/local/bin/)"
+echo "  - Use ~/.kube/config automatically"
 echo "  - No group membership needed!"
 echo "  - No 'newgrp' or logout required!"
 echo ""

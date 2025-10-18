@@ -32,9 +32,9 @@ cd terminal-setup && bash setup.sh
 ```bash
 cd k8s-local && bash setup.sh
 ```
-**Installs:** microk8s, helm, GPU operator, k9s, kubectl  
+**Installs:** microk8s, kubectl, helm, k9s, GPU operator  
 **Time:** ~3-5 minutes  
-**Note:** kubectl works immediately via ~/.kube/config
+**Note:** All tools work immediately, no group membership or logout needed
 
 ### 🤖 ML Quickstart
 ```bash
