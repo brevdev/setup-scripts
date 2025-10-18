@@ -66,11 +66,17 @@ if ! command -v pnpm &> /dev/null; then
     
     # Configure pnpm global bin directory
     echo "Configuring pnpm..."
-    # Set SHELL if not already set (needed when running as systemd service)
-    if [ -z "$SHELL" ]; then
-        export SHELL=/bin/bash
-    fi
-    pnpm setup
+    # Set SHELL inline (needed when running as systemd service)
+    SHELL=/bin/bash pnpm setup 2>/dev/null || {
+        echo "pnpm setup failed, configuring manually..."
+        # Manually configure PNPM_HOME if pnpm setup fails
+        mkdir -p "$HOME/.local/share/pnpm"
+        # Add to shell configs manually
+        echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> "$HOME/.bashrc" 2>/dev/null || true
+        echo 'export PATH="$PNPM_HOME:$PATH"' >> "$HOME/.bashrc" 2>/dev/null || true
+        echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> "$HOME/.zshrc" 2>/dev/null || true
+        echo 'export PATH="$PNPM_HOME:$PATH"' >> "$HOME/.zshrc" 2>/dev/null || true
+    }
     
     # Add pnpm to current session's PATH
     export PNPM_HOME="$HOME/.local/share/pnpm"

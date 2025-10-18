@@ -85,14 +85,26 @@ fi
 echo "Upgrading pip..."
 pip install --upgrade pip
 
-# Install PyTorch with CUDA (ensure latest version for torch.int1 support)
-echo "Installing PyTorch with CUDA (>=2.5.0 for unsloth compatibility)..."
+# Install PyTorch with CUDA (use stable version 2.5.1)
+echo "Installing PyTorch with CUDA 12.1..."
 pip install --upgrade --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
-# Install unsloth
+# Install triton (required by unsloth and PyTorch)
+echo "Installing triton..."
+pip install triton
+
+# Install xformers (optional but recommended for memory efficiency)
+echo "Installing xformers..."
+pip install xformers 2>/dev/null || echo "xformers installation skipped (optional)"
+
+# Install unsloth with proper extras for CUDA 12.1 and PyTorch 2.5
 echo "Installing Unsloth (this may take a few minutes)..."
-pip install --upgrade "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
-pip install --no-deps trl peft accelerate bitsandbytes
+# Use the cu121-torch250 extra to ensure compatibility
+pip install "unsloth[cu121-torch250] @ git+https://github.com/unslothai/unsloth.git"
+
+# Install additional dependencies
+echo "Installing additional dependencies..."
+pip install packaging ninja einops trl peft accelerate bitsandbytes
 
 # Install additional useful packages
 echo "Installing supporting packages..."
