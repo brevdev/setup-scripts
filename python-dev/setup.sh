@@ -115,7 +115,16 @@ echo ""
 echo "Quick start:"
 echo "  python --version"
 echo "  ipython"
-echo "  jupyter lab --ip=0.0.0.0 --port=8888"
 echo ""
-echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
+
+# Check if Jupyter is already running
+if lsof -i :8888 >/dev/null 2>&1 || pgrep -f "jupyter.*lab" >/dev/null 2>&1; then
+    echo "💡 Jupyter Lab is already running on this instance!"
+    echo "   Access it via your Brev URL (port 8888 should already be open)"
+else
+    echo "Start Jupyter Lab:"
+    echo "  jupyter lab --ip=0.0.0.0 --port=8888"
+    echo ""
+    echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
+fi
 

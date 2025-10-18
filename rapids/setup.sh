@@ -95,6 +95,10 @@ conda activate rapids
 echo "Installing additional tools..."
 pip install jupyterlab matplotlib seaborn plotly
 
+# Install ipykernel so this environment can be used in Jupyter
+pip install ipykernel
+python -m ipykernel install --user --name=rapids --display-name="Python (rapids)"
+
 # Create examples directory
 mkdir -p ~/rapids-examples
 cd ~/rapids-examples
@@ -489,19 +493,34 @@ python ~/rapids-examples/test_rapids.py
 echo ""
 echo "✅ RAPIDS ready!"
 echo ""
-echo "⚡ GPU-accelerated data science is $GPU_COUNT GPU(s)"
+echo "⚡ GPU-accelerated data science with $GPU_COUNT GPU(s)"
 echo ""
 echo "Quick start:"
 echo "  conda activate rapids"
 echo "  python ~/rapids-examples/benchmark.py    # See the speedup!"
-echo "  jupyter lab --ip=0.0.0.0 --port=8888     # Start Jupyter"
 echo ""
 echo "Examples:"
 echo "  ~/rapids-examples/benchmark.py           # pandas vs cuDF benchmark"
 echo "  ~/rapids-examples/rapids_quickstart.ipynb # Interactive tutorial"
 echo "  ~/rapids-examples/test_rapids.py         # Quick test"
 echo ""
-echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
+
+# Check if Jupyter is already running
+if lsof -i :8888 >/dev/null 2>&1 || pgrep -f "jupyter.*lab" >/dev/null 2>&1; then
+    echo "💡 Jupyter Lab is already running on this instance!"
+    echo "   Access it via your Brev URL (port 8888 should already be open)"
+    echo ""
+    echo "   To use the 'rapids' conda environment in Jupyter:"
+    echo "   1. Open Jupyter in your browser"
+    echo "   2. Select the 'Python (rapids)' kernel when creating a notebook"
+    echo "   3. Or activate in a terminal: conda activate rapids"
+else
+    echo "Start Jupyter Lab:"
+    echo "  jupyter lab --ip=0.0.0.0 --port=8888"
+    echo ""
+    echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
+fi
+
 echo ""
 echo "Performance tips:"
 echo "  - Use cuDF for datasets >1M rows (best speedup)"

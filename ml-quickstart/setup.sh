@@ -92,6 +92,10 @@ fi
 pip install transformers datasets accelerate
 pip install pandas matplotlib seaborn plotly
 
+# Install ipykernel so this environment can be used in Jupyter
+pip install ipykernel
+python -m ipykernel install --user --name=ml --display-name="Python (ml)"
+
 # Create test script
 mkdir -p ~/ml-test
 cat > ~/ml-test/gpu_check.py << 'EOF'
@@ -114,7 +118,21 @@ echo ""
 echo "Quick start:"
 echo "  conda activate ml"
 echo "  python ~/ml-test/gpu_check.py"
-echo "  jupyter lab --ip=0.0.0.0 --port=8888"
 echo ""
-echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
+
+# Check if Jupyter is already running
+if lsof -i :8888 >/dev/null 2>&1 || pgrep -f "jupyter.*lab" >/dev/null 2>&1; then
+    echo "💡 Jupyter Lab is already running on this instance!"
+    echo "   Access it via your Brev URL (port 8888 should already be open)"
+    echo ""
+    echo "   To use the 'ml' conda environment in Jupyter:"
+    echo "   1. Open Jupyter in your browser"
+    echo "   2. The 'ml' kernel should be available in the kernel list"
+    echo "   3. Or activate in a terminal: conda activate ml"
+else
+    echo "Start Jupyter Lab:"
+    echo "  jupyter lab --ip=0.0.0.0 --port=8888"
+    echo ""
+    echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
+fi
 

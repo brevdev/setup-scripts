@@ -85,6 +85,10 @@ echo "Installing supporting packages..."
 pip install datasets transformers
 pip install wandb tensorboard
 
+# Install ipykernel so this environment can be used in Jupyter
+pip install ipykernel
+python -m ipykernel install --user --name=unsloth --display-name="Python (unsloth)"
+
 # Install Jupyter if not already installed
 if ! command -v jupyter &> /dev/null; then
     echo "Installing Jupyter Lab..."
@@ -138,9 +142,24 @@ echo ""
 echo "Quick start:"
 echo "  conda activate unsloth"
 echo "  python $HOME/unsloth-examples/test_install.py"
-echo "  jupyter lab --ip=0.0.0.0 --port=8888"
 echo ""
-echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
+
+# Check if Jupyter is already running
+if lsof -i :8888 >/dev/null 2>&1 || pgrep -f "jupyter.*lab" >/dev/null 2>&1; then
+    echo "💡 Jupyter Lab is already running on this instance!"
+    echo "   Access it via your Brev URL (port 8888 should already be open)"
+    echo ""
+    echo "   To use the 'unsloth' conda environment in Jupyter:"
+    echo "   1. Open Jupyter in your browser"
+    echo "   2. Select the 'Python (unsloth)' kernel when creating a notebook"
+    echo "   3. Or activate in a terminal: conda activate unsloth"
+else
+    echo "Start Jupyter Lab:"
+    echo "  jupyter lab --ip=0.0.0.0 --port=8888"
+    echo ""
+    echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
+fi
+
 echo ""
 echo "Popular models:"
 echo "  unsloth/llama-3.2-1b-bnb-4bit (smallest)"
