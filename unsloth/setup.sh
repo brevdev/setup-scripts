@@ -85,31 +85,18 @@ fi
 echo "Upgrading pip..."
 pip install --upgrade pip
 
-# Install PyTorch with CUDA (use stable version 2.5.1)
-echo "Installing PyTorch with CUDA 12.1..."
-pip install --upgrade --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# Install PyTorch with CUDA
+echo "Installing PyTorch with CUDA support..."
+pip install --upgrade --no-cache-dir torch torchvision torchaudio
 
-# Install triton (required by unsloth and PyTorch)
-echo "Installing triton..."
-pip install triton
-
-# Install xformers (optional but recommended for memory efficiency)
-echo "Installing xformers..."
-pip install xformers 2>/dev/null || echo "xformers installation skipped (optional)"
-
-# Install unsloth with proper extras for CUDA 12.1 and PyTorch 2.5
+# Install Unsloth (recommended simple method from official docs)
+# See: https://docs.unsloth.ai/get-started/install-and-update/pip-install
 echo "Installing Unsloth (this may take a few minutes)..."
-# Use the cu121-torch250 extra to ensure compatibility
-pip install "unsloth[cu121-torch250] @ git+https://github.com/unslothai/unsloth.git"
+pip install unsloth
 
-# Install additional dependencies
+# Install additional dependencies for fine-tuning
 echo "Installing additional dependencies..."
-pip install packaging ninja einops trl peft accelerate bitsandbytes
-
-# Install additional useful packages
-echo "Installing supporting packages..."
-pip install datasets transformers
-pip install wandb tensorboard
+pip install trl peft accelerate bitsandbytes datasets transformers wandb tensorboard
 
 # Install ipykernel so this environment can be used in Jupyter
 pip install ipykernel
