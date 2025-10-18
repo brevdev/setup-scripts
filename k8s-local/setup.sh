@@ -36,7 +36,12 @@ sudo snap install microk8s --classic
 
 # Add user to group
 sudo usermod -a -G microk8s $USER
-sudo chown -R $USER ~/.kube
+
+# Create .kube directory if it doesn't exist and fix permissions
+mkdir -p ~/.kube
+if [ "$(id -u)" -eq 0 ]; then
+    chown -R $USER:$USER ~/.kube
+fi
 
 # Wait for microk8s to be ready
 echo "Waiting for microk8s..."
@@ -55,14 +60,20 @@ sudo snap alias microk8s.kubectl kubectl
 echo "Installing k9s..."
 wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz
 tar -xzf k9s_Linux_amd64.tar.gz
+sudo chmod +x k9s
 sudo mv k9s /usr/local/bin/
-rm k9s_Linux_amd64.tar.gz
+rm k9s_Linux_amd64.tar.gz LICENSE README.md 2>/dev/null || true
 
 # Verify
 echo ""
 echo "Verifying installation..."
 sudo microk8s status
 kubectl version --client
+
+# Final permission fix for any files created by microk8s
+if [ "$(id -u)" -eq 0 ] && [ -d "$HOME/.kube" ]; then
+    chown -R $USER:$USER "$HOME/.kube" 2>/dev/null || true
+fi
 
 echo ""
 echo "✅ Kubernetes ready!"
