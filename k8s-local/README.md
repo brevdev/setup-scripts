@@ -17,7 +17,13 @@ microk8s with GPU support for local Kubernetes development.
 bash setup.sh
 ```
 
-Takes ~3-5 minutes. **Log out and back in** after running.
+Takes ~3-5 minutes.
+
+**Important:** After setup, either:
+- Open a new terminal, OR
+- Run: `source ~/.bashrc`
+
+This loads the kubeconfig so kubectl/k9s can access the cluster.
 
 ## What you get
 
@@ -27,6 +33,8 @@ kubectl get pods -A         # View all pods
 k9s                         # Launch terminal UI
 helm list                   # List helm releases
 ```
+
+Note: kubectl and k9s use `~/.kube/config` - no group membership needed!
 
 ## Deploy something
 

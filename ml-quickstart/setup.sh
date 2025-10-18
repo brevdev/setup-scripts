@@ -53,6 +53,16 @@ fi
 # Load conda
 eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
 
+# Accept conda TOS to avoid non-interactive errors
+echo "Accepting conda Terms of Service..."
+conda config --set allow_conda_downgrades true 2>/dev/null || true
+conda config --set channel_priority flexible 2>/dev/null || true
+# Accept TOS for main Anaconda channels if command exists (conda >= 24.x)
+if conda tos --help &> /dev/null; then
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true
+fi
+
 # Create ML environment if it doesn't exist
 if ! conda env list | grep -q "^ml "; then
     echo "Creating ML environment..."
