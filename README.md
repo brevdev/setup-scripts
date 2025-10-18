@@ -1,417 +1,172 @@
 # Brev Setup Scripts
 
-> **Stop wasting time on environment setup. Start shipping code.**
+Simple, practical setup scripts for common developer environments.
 
-## The Problem
+**What Brev already provides:** NVIDIA drivers, CUDA toolkit, Docker, NVIDIA Container Toolkit
 
-You've been there. A new developer joins your team. They spend the first 3 days:
-- Installing dependencies (wrong versions)
-- Setting up databases (different config than production)
-- Fighting with Python virtual environments
-- Debugging "works on my machine" issues
-- Following a 47-step onboarding doc that's 6 months out of date
+## Available Scripts
 
-Or maybe you're working on a side project. You need to spin up a GPU instance, but first you need to spend 30 minutes installing CUDA, PyTorch, and all your ML dependencies. Then you do it again next week when you need a different GPU.
+### 🐍 Python Development
+```bash
+cd python-dev && bash setup.sh
+```
+**Installs:** pyenv, Python 3.11, Jupyter Lab, common packages (pandas, numpy, matplotlib)  
+**Time:** ~3-5 minutes
 
-**This sucks. Brev fixes it.**
+### 📦 Node.js Development
+```bash
+cd nodejs-dev && bash setup.sh
+```
+**Installs:** nvm, Node LTS, pnpm, TypeScript, ESLint, Prettier  
+**Time:** ~2-3 minutes
 
-## The Solution: Infrastructure + Environment as Code
+### 💻 Terminal Setup
+```bash
+cd terminal-setup && bash setup.sh
+```
+**Installs:** zsh, oh-my-zsh, fzf, ripgrep, bat, eza (modern CLI tools)  
+**Time:** ~2-3 minutes  
+**Note:** Log out and back in after running
 
-Brev gives you instant access to powerful cloud hardware (GPUs, CPUs, whatever you need) with your development environment automatically configured. No manual setup. No "works on my machine." Just:
+### ☸️ Local Kubernetes
+```bash
+cd k8s-local && bash setup.sh
+```
+**Installs:** microk8s, helm, GPU operator, k9s  
+**Time:** ~3-5 minutes  
+**Note:** Log out and back in after running
+
+### 🤖 ML Quickstart
+```bash
+cd ml-quickstart && bash setup.sh
+```
+**Installs:** Miniconda, PyTorch with CUDA, Jupyter Lab, transformers  
+**Time:** ~5-8 minutes (PyTorch is large)
+
+### 🗄️ Databases
+```bash
+cd databases && bash setup.sh
+```
+**Installs:** PostgreSQL 16, Redis 7 (in Docker containers)  
+**Time:** ~1-2 minutes
+
+## Quick Start
+
+**Pick what you need:**
 
 ```bash
-brev start https://github.com/your-org/your-project
-# Coffee break ☕
-# Come back to a fully configured dev environment, ready to code
+# Python ML developer
+cd ml-quickstart && bash setup.sh
+
+# Web developer
+cd nodejs-dev && bash setup.sh
+cd databases && bash setup.sh
+
+# Terminal power user
+cd terminal-setup && bash setup.sh
+
+# Kubernetes developer
+cd k8s-local && bash setup.sh
 ```
 
-Setup scripts are how you define "what does ready to code mean" for your project. They're bash scripts that run once when your environment spins up, installing dependencies and configuring everything automatically.
-
-## Why This Matters
-
-**For Individual Developers:**
-- Spin up new environments quickly, not spending hours on setup
-- Experiment fearlessly - break something? `brev reset` and you're back to working
-- Work on multiple projects without dependency conflicts
-- Access GPUs/powerful hardware without the setup headache
-
-**For Teams:**
-- New developers productive on day one, not day three
-- Everyone has identical environments - no more "works on my machine"
-- Environment changes are code-reviewed and version-controlled
-- Onboarding is automatic
-
-**Real Example:** A data science team reduced new hire onboarding from days to a single automated process. Their setup script installs Python, CUDA, PyTorch, downloads their models, and configures their data pipelines. Every single time. Perfectly.
-
-## Quick Start: Your First Setup Script
-
-The simplest way is to add a `.brev/setup.sh` file to your repo. Here's a complete example for a Node.js project:
+**Use with Brev CLI:**
 
 ```bash
-#!/bin/bash
-set -euo pipefail
+# Start workspace with Python setup
+brev start my-workspace \
+  --setup-script https://raw.githubusercontent.com/brevdev/setup-scripts/main/python-dev/setup.sh
 
-# Install Node.js 18
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install dependencies
-npm install
-
-# Copy environment template
-cp .env.example .env
-
-echo "✅ Setup complete! Ready to code."
+# Start workspace with ML setup
+brev start my-ml-workspace \
+  --gpu g5.xlarge \
+  --setup-script https://raw.githubusercontent.com/brevdev/setup-scripts/main/ml-quickstart/setup.sh
 ```
 
-That's it. Commit this to your repo as `.brev/setup.sh`, then:
+## Design Philosophy
 
+Each script is:
+- ✅ **Simple** - One purpose, no complexity
+- ✅ **Short** - Under 150 lines each
+- ✅ **Fast** - Takes 2-8 minutes
+- ✅ **Standalone** - No dependencies between scripts
+- ✅ **Practical** - Installs what developers actually use
+
+We don't:
+- ❌ Install what Brev already provides (NVIDIA drivers, CUDA, Docker)
+- ❌ Add complex GPU detection logic
+- ❌ Support multi-node/HPC scenarios
+- ❌ Over-engineer solutions
+
+## Examples
+
+**Python data science:**
 ```bash
-brev start https://github.com/your-org/your-repo
+cd python-dev && bash setup.sh
+# Then:
+ipython
+jupyter lab --ip=0.0.0.0
 ```
 
-Brev will automatically detect and run your setup script. When it's done, you have a fully configured development environment.
-
-### Other Ways to Use Setup Scripts
-
-**Use a Gist or external URL:**
+**Machine learning with GPU:**
 ```bash
-brev start https://github.com/your-org/your-repo \
-  --setup-script https://gist.githubusercontent.com/you/abc123/raw/setup.sh
+cd ml-quickstart && bash setup.sh
+# Then:
+conda activate ml
+python gpu_check.py
 ```
 
-**Share setup scripts across multiple projects:**
+**Modern terminal:**
 ```bash
-# Store setup scripts in a dedicated repo, use across many projects
-brev start https://github.com/your-org/your-repo \
-  --setup-repo https://github.com/your-org/setup-scripts \
-  --setup-path .brev/setup.sh
+cd terminal-setup && bash setup.sh
+# Log out and back in, then:
+ll    # Better ls
+cat file.txt  # Syntax highlighting
+fzf   # Fuzzy finder
 ```
 
-**Personal setup scripts:** Configure setup scripts that run on ALL your workspaces via the Brev Console (Account Settings → Terminal Settings). Great for shell customizations, personal tools, and dotfiles.
-
-## Common Workflows
-
-**Start a workspace (defaults to T4 GPU):**
+**Local database:**
 ```bash
-brev start https://github.com/your-org/your-repo
+cd databases && bash setup.sh
+# Then:
+docker exec -it postgres psql -U postgres
+docker exec -it redis redis-cli
 ```
 
-**Specify GPU type:**
-```bash
-# Default GPU (GCP T4 - good for most workloads)
-brev start https://github.com/your-org/your-repo
+## File Structure
 
-# A10G GPU (AWS - best price/performance)
-brev start https://github.com/your-org/your-repo --gpu g5.xlarge
-
-# V100 GPU (AWS - solid all-around, 1x)
-brev start https://github.com/your-org/your-repo --gpu p3.2xlarge
-
-# V100 GPU (AWS - multi-GPU, 4x)
-brev start https://github.com/your-org/your-repo --gpu p3.8xlarge
-
-# A100 GPU (AWS - 8x for large models)
-brev start https://github.com/your-org/your-repo --gpu p4d.24xlarge
-
-# See GPU_INSTANCES.md for complete list
+```
+brev-setup-scripts/
+├── README.md                    # This file
+├── python-dev/
+│   ├── setup.sh                 # Python development environment
+│   └── README.md
+├── nodejs-dev/
+│   ├── setup.sh                 # Node.js development environment
+│   └── README.md
+├── terminal-setup/
+│   ├── setup.sh                 # Modern terminal with zsh
+│   └── README.md
+├── k8s-local/
+│   ├── setup.sh                 # Local Kubernetes
+│   └── README.md
+├── ml-quickstart/
+│   ├── setup.sh                 # PyTorch ML environment
+│   └── README.md
+└── databases/
+    ├── setup.sh                 # PostgreSQL + Redis
+    └── README.md
 ```
 
-**Common GPU Options:**
-| GPU Type | Instance | Use Case | 
-|----------|----------|----------|
-| **T4** (default) | `n1-highmem-4:nvidia-tesla-t4:1` | Development, LoRA fine-tuning, inference |
-| **A10G** | `g5.xlarge` | Best price/performance, SDXL, inference |
-| **V100** | `p3.2xlarge` | Training 7B models, solid all-around |
-| **A100** | `p4d.24xlarge` | Large model training (70B+), 8x GPUs |
+## Contributing
 
-**📖 Complete GPU list:** See [GPU_INSTANCES.md](GPU_INSTANCES.md)
+Want to add a script? Keep it simple:
 
-**CPU Options:**
-- `2x8` - 2 vCPU, 8GB RAM (default)
-- `4x16` - 4 vCPU, 16GB RAM
-- `8x32` - 8 vCPU, 32GB RAM
+1. **One purpose** - Install one thing well
+2. **Short** - Under 150 lines
+3. **Fast** - Completes in < 10 minutes
+4. **Verify** - Include a verification step
+5. **Document** - Show quick start commands
 
-For the full list of 300+ GPU/CPU combinations, see: https://brev.dev/docs/reference/gpu
+## License
 
-**Start from your current directory:**
-```bash
-cd your-project/
-brev start .  # Automatically finds .brev/setup.sh
-```
-
-**Name your workspace:**
-```bash
-brev start https://github.com/your-org/your-repo --name my-experiment
-```
-
-**Experimenting? Reset your environment:**
-```bash
-# Made a mess? No problem. Reset re-runs your setup script on a fresh environment
-brev reset my-workspace
-```
-
-**Create fresh environment:**
-```bash
-# Sometimes you just want to start from scratch
-brev recreate my-workspace
-```
-
-## Real-World Examples
-
-**Want a complete example with best practices?** Check out [`example-setup.sh`](./example-setup.sh) - a heavily commented template showing error handling, version pinning, PATH updates, and more.
-
-These aren't toy examples - they're battle-tested setups used by real teams. Copy, modify, and use them.
-
-### Web App (Node.js + TypeScript)
-
-Perfect for frontend/backend projects. Sets up Node 18, Yarn, installs dependencies, and creates your `.env` file.
-
-```bash
-#!/bin/bash
-set -euo pipefail
-
-# Install Node.js 18
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install Yarn  
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-sudo apt update && sudo apt install -y yarn
-
-# Install dependencies and setup environment
-npm install
-cp .env.example .env
-
-echo "✅ Ready to code!"
-```
-
-### ML/Data Science (Python + PyTorch + Jupyter)
-
-Spin up a GPU instance with PyTorch, CUDA, and Jupyter ready to go. No more manual CUDA installation ever again.
-
-```bash
-#!/bin/bash
-set -euo pipefail
-
-# Install Python tooling
-sudo apt-get update
-sudo apt-get install -y python3-pip python3-venv
-
-# Install Poetry for dependency management
-curl -sSL https://install.python-poetry.org | python3 -
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-export PATH="$HOME/.local/bin:$PATH"
-
-# Install project dependencies (includes PyTorch with CUDA)
-poetry install
-
-# Install Jupyter
-pip3 install jupyter jupyterlab
-
-echo "✅ ML environment ready! Run 'jupyter lab' to start."
-```
-
-### Go Microservice
-
-Sets up Go 1.21, common Go tools (gopls, golangci-lint), and downloads your dependencies.
-
-```bash
-#!/bin/bash
-set -euo pipefail
-
-# Install Go 1.21
-GO_VERSION="1.21.0"
-wget "https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz"
-sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz"
-rm "go${GO_VERSION}.linux-amd64.tar.gz"
-
-# Setup Go environment
-echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-echo 'export GOPATH=$HOME/go' >> ~/.bashrc
-echo 'export PATH=$PATH:$GOPATH/bin' >> ~/.bashrc
-export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
-export GOPATH=$HOME/go
-
-# Install development tools
-go install golang.org/x/tools/gopls@latest
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-
-# Download dependencies
-go mod download
-
-echo "✅ Go environment ready!"
-```
-
-### Full-Stack App (Node + Python + PostgreSQL + Redis)
-
-The "everything" setup - perfect for complex applications. Frontend, backend, database, cache, all configured.
-
-```bash
-#!/bin/bash
-set -euo pipefail
-
-# Install Node.js for frontend
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install Python for backend
-sudo apt-get install -y python3-pip python3-venv
-
-# Install and start PostgreSQL
-sudo apt-get install -y postgresql postgresql-contrib
-sudo systemctl start postgresql
-sudo -u postgres createdb myapp_dev
-
-# Install and start Redis
-sudo apt-get install -y redis-server
-sudo systemctl start redis-server
-
-# Setup frontend
-cd frontend && npm install && cd ..
-
-# Setup backend
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cd ..
-
-# Create environment file
-cp .env.example .env
-
-echo "✅ Full stack ready!"
-echo "Frontend: cd frontend && npm start"
-echo "Backend: cd backend && source venv/bin/activate && python manage.py runserver"
-```
-
-### More Examples
-
-**Rust:**
-```bash
-#!/bin/bash
-set -euo pipefail
-
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-source "$HOME/.cargo/env"
-echo 'source "$HOME/.cargo/env"' >> ~/.bashrc
-
-# Install tools
-cargo install cargo-watch cargo-edit
-rustup component add rustfmt clippy
-
-cargo build
-echo "✅ Rust environment ready!"
-```
-
-**Docker:**
-```bash
-#!/bin/bash
-set -euo pipefail
-
-# Install Docker
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list
-
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-sudo usermod -aG docker $USER
-
-# Start your containers
-sg docker -c "docker-compose up -d"
-
-echo "✅ Docker ready!"
-```
-
-## Writing Good Setup Scripts
-
-**Start with error handling:**
-```bash
-#!/bin/bash
-set -euo pipefail  # Exit on error, undefined variables, or pipe failures
-```
-
-**Always use `-y` for non-interactive installs:**
-```bash
-sudo apt-get install -y nodejs  # No prompts
-```
-
-**Pin versions for reproducibility:**
-```bash
-GO_VERSION="1.21.0"  # Explicit versions, not "latest"
-```
-
-**Update PATH for both bash and zsh:**
-```bash
-echo 'export PATH=$PATH:/usr/local/bin' >> ~/.bashrc
-echo 'export PATH=$PATH:/usr/local/bin' >> ~/.zshrc
-```
-
-**Don't run long-running processes:**
-```bash
-# ❌ Don't do this - will hang forever
-npm start
-
-# ✅ Do this instead - install and exit
-npm install
-```
-
-**Check the logs if something breaks:**
-```bash
-cat .brev/logs/setup.log
-```
-
-## Troubleshooting
-
-**Script not running?**
-- Make sure `.brev/setup.sh` exists in your repo
-- Check it's executable: `chmod +x .brev/setup.sh`
-- Check logs: `cat .brev/logs/setup.log`
-
-**Workspace stuck in "Starting" state?**
-- Your script is probably running a long-running process (`npm start`, `jupyter notebook`, etc.)
-- Setup scripts should install and configure, not run servers
-- Remove any commands that don't exit
-
-**Dependencies not found after setup?**
-- Did you update both `.bashrc` and `.zshrc`?
-- Try: `source ~/.bashrc && source ~/.zshrc`
-- Make sure you're exporting variables: `export PATH=$PATH:/new/path`
-
-**Permission errors?**
-- Use `sudo` for system packages: `sudo apt-get install -y nodejs`
-- Don't use `sudo` for user packages: `npm install` (not `sudo npm install`)
-- Don't use `sudo` for pip: `pip3 install --user package`
-
-## How Brev Uses Setup Scripts Internally
-
-When you run `brev start`:
-1. Brev spins up your chosen hardware (GPU/CPU)
-2. Clones your git repository
-3. Runs your setup script from the project directory
-4. Captures all output to `.brev/logs/setup.log`
-5. Marks workspace as "Ready" when script exits successfully
-
-**Technical Details:**
-- Working directory: `/home/ubuntu/<your-project>/` (or `/home/nvidia/`, etc.)
-- Runs as the instance user, not root
-- Executes after git clone, before marking instance ready
-- Setup script failures will mark the workspace as "Failed"
-
-## Need Help?
-
-- [Brev Discord](https://discord.gg/NVDyv7TUgJ) - Ask questions, share your setup scripts
-- [Brev Docs](https://docs.brev.dev) - Full documentation
-- [GitHub Issues](https://github.com/brevdev/brev-cli/issues) - Report bugs
-
----
-
-**tl;dr:** Create `.brev/setup.sh` in your repo, install your dependencies, commit it, and `brev start` will give you a ready-to-code environment automatically. Stop wasting time on setup. Start building.
-
+Apache 2.0

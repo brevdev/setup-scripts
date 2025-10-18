@@ -1,0 +1,102 @@
+# Marimo Notebook Server
+
+Interactive notebook server with Marimo - a reactive Python notebook.
+
+## What it installs
+
+- **Python 3** & **pip** - If not already installed
+- **pipx** - Isolated Python app installer
+- **Marimo** - Reactive Python notebooks
+- **Marimo examples** - Sample notebooks from marimo-team/examples
+
+## Features
+
+- **Runs as systemd service** - Auto-starts with the system
+- **Accessible via web** - Default port 8080
+- **Example notebooks included** - Ready to explore
+- **Battle-tested user detection** - Works with ubuntu, nvidia, shadeform users
+
+## Usage
+
+```bash
+bash setup.sh
+```
+
+Takes ~2-3 minutes.
+
+## Configuration
+
+**Use your own notebook repository:**
+```bash
+MARIMO_REPO_URL="https://github.com/your-org/your-notebooks.git" bash setup.sh
+```
+
+**Skip cloning examples:**
+```bash
+MARIMO_REPO_URL="" bash setup.sh
+```
+
+**Custom notebooks directory:**
+```bash
+MARIMO_NOTEBOOKS_DIR="my-notebooks" bash setup.sh
+```
+
+## What you get
+
+```bash
+# Service management
+sudo systemctl status marimo
+sudo systemctl restart marimo
+sudo systemctl stop marimo
+
+# View logs
+sudo journalctl -u marimo -f
+
+# Access notebooks
+http://localhost:8080
+# Or via Brev URL
+```
+
+## Example notebooks
+
+The setup clones [marimo-team/examples](https://github.com/marimo-team/examples) by default, which includes:
+- Data visualization examples
+- Interactive widgets
+- Machine learning demos
+- And more!
+
+## Advanced
+
+**Change the port:**
+Edit `/etc/systemd/system/marimo.service` and change `--port 8080` to your desired port, then:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart marimo
+```
+
+**Add more notebooks:**
+```bash
+cd ~/marimo-examples  # Or your custom directory
+git pull  # Update examples
+# Or add your own .py files
+```
+
+## Troubleshooting
+
+**Service won't start:**
+```bash
+sudo journalctl -u marimo -n 50  # View recent logs
+sudo systemctl status marimo      # Check status
+```
+
+**Can't access web UI:**
+- Check service is running: `sudo systemctl status marimo`
+- Check firewall: `sudo ufw status`
+- Try: `http://localhost:8080` or your Brev instance URL
+
+**Marimo not found:**
+```bash
+pipx list                     # Check if installed
+pipx install marimo           # Reinstall if needed
+```
+
