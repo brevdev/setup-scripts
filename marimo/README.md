@@ -5,9 +5,11 @@ Interactive notebook server with Marimo - a reactive Python notebook.
 ## What it installs
 
 - **Python 3** & **pip** - If not already installed
-- **pipx** - Isolated Python app installer
 - **Marimo** - Reactive Python notebooks
-- **Marimo examples** - Sample notebooks from marimo-team/examples
+- **Brev GPU notebooks** - GPU validation, multi-GPU training, etc. (always included)
+- **Marimo examples** - Sample notebooks from marimo-team/examples (customizable)
+- **PyTorch with CUDA** - GPU-accelerated machine learning
+- **Data science packages** - pandas, numpy, scikit-learn, plotly, etc.
 
 ## Features
 
@@ -31,12 +33,12 @@ Takes ~2-3 minutes.
 
 ## Configuration
 
-**Use your own notebook repository:**
+**Use your own notebook repository (merges with Brev notebooks):**
 ```bash
 MARIMO_REPO_URL="https://github.com/your-org/your-notebooks.git" bash setup.sh
 ```
 
-**Skip cloning examples:**
+**Skip cloning marimo-team examples (still includes Brev notebooks):**
 ```bash
 MARIMO_REPO_URL="" bash setup.sh
 ```
@@ -45,6 +47,8 @@ MARIMO_REPO_URL="" bash setup.sh
 ```bash
 MARIMO_NOTEBOOKS_DIR="my-notebooks" bash setup.sh
 ```
+
+**Note:** Brev GPU notebooks from [brevdev/marimo](https://github.com/brevdev/marimo) are **always** included and merged into your notebooks directory.
 
 ## What you get
 
@@ -64,7 +68,18 @@ http://localhost:8080
 
 ## Example notebooks
 
-The setup clones [marimo-team/examples](https://github.com/marimo-team/examples) by default, which includes:
+### Brev GPU Notebooks (always included)
+
+From [brevdev/marimo](https://github.com/brevdev/marimo):
+- **gpu_validation.py** - GPU testing, metrics, stress testing
+- **multi_gpu_training.py** - Multi-GPU training examples
+- **llm_finetuning_dashboard.py** - LLM fine-tuning with monitoring
+- **graph_analytics_cugraph.py** - GPU-accelerated graph analytics
+- **nerf_training_viewer.py** - NeRF training visualization
+
+### Marimo Team Examples (optional, included by default)
+
+From [marimo-team/examples](https://github.com/marimo-team/examples):
 - Data visualization examples
 - Interactive widgets
 - Machine learning demos

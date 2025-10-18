@@ -8,6 +8,9 @@ set -euo pipefail
 # Defaults to cloning marimo-team/examples repository
 # Set MARIMO_REPO_URL to use your own notebooks repository
 # Set MARIMO_REPO_URL="" to skip cloning entirely
+#
+# ALWAYS includes Brev-specific notebooks from https://github.com/brevdev/marimo.git
+# These are merged into the notebooks directory alongside MARIMO_REPO_URL notebooks
 ####################################################################################
 
 # Detect the actual Brev user dynamically
@@ -117,68 +120,60 @@ if [ -n "$REPO_URL" ]; then
     cd "$HOME"
     git clone "$REPO_URL" "$NOTEBOOKS_DIR" 2>/dev/null || echo "Repository already exists"
     
-    # Install PyTorch with CUDA support first (large download)
-    (echo ""; echo "##### Installing PyTorch with CUDA support #####"; echo "";)
-    pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-    
-    # Install common packages for marimo examples
-    (echo ""; echo "##### Installing common packages for marimo examples #####"; echo "";)
-    pip3 install --no-cache-dir --upgrade \
-        polars altair plotly pandas numpy scipy scikit-learn \
-        matplotlib seaborn pyarrow openai anthropic requests \
-        beautifulsoup4 pillow 'marimo[sql]' duckdb sqlalchemy \
-        instructor mohtml openai-whisper opencv-python python-dotenv \
-        wigglystuff yt-dlp psutil pynvml GPUtil
-    
     # Install dependencies if requirements.txt exists
     if [ -f "$HOME/$NOTEBOOKS_DIR/requirements.txt" ]; then
         (echo ""; echo "##### Installing additional dependencies from requirements.txt #####"; echo "";)
         pip3 install -r "$HOME/$NOTEBOOKS_DIR/requirements.txt"
     fi
+fi
+
+##### Install PyTorch with CUDA support and common packages #####
+(echo ""; echo "##### Installing PyTorch with CUDA support #####"; echo "";)
+pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Install common packages for marimo examples
+(echo ""; echo "##### Installing common packages for marimo examples #####"; echo "";)
+pip3 install --no-cache-dir --upgrade \
+    polars altair plotly pandas numpy scipy scikit-learn \
+    matplotlib seaborn pyarrow openai anthropic requests \
+    beautifulsoup4 pillow 'marimo[sql]' duckdb sqlalchemy \
+    instructor mohtml openai-whisper opencv-python python-dotenv \
+    wigglystuff yt-dlp psutil pynvml GPUtil
+
+##### Always pull Brev-specific marimo notebooks and merge them in #####
+(echo ""; echo "##### Adding Brev marimo notebooks to notebooks directory #####"; echo "";)
+BREV_MARIMO_REPO="https://github.com/brevdev/marimo.git"
+BREV_MARIMO_TEMP="/tmp/brevdev-marimo-$$"
+
+# Clone Brev marimo repo to temporary location
+if git clone "$BREV_MARIMO_REPO" "$BREV_MARIMO_TEMP" 2>/dev/null; then
+    echo "  Cloned Brev marimo notebooks"
     
-    # Copy all marimo notebooks from this repo to notebooks directory
-    (echo ""; echo "##### Adding custom marimo notebooks to notebooks directory #####"; echo "";)
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    
-    # Build list of directories to search
-    # Start with obvious locations
-    MARIMO_SOURCE_DIRS=(
-        "$SCRIPT_DIR"
-        "$HOME/marimo"
-    )
-    
-    # Dynamically detect all user home directories and add their marimo subdirs
-    # This handles ubuntu, nvidia, shadeform, or any other Brev user
-    for user_home in /home/*; do
-        if [ -d "$user_home/marimo" ]; then
-            MARIMO_SOURCE_DIRS+=("$user_home/marimo")
+    # Copy all .py files (marimo notebooks) from the root of brevdev/marimo
+    for notebook in "$BREV_MARIMO_TEMP"/*.py; do
+        [ -f "$notebook" ] || continue
+        NOTEBOOK_NAME=$(basename "$notebook")
+        
+        # Skip setup files
+        if [[ "$NOTEBOOK_NAME" == "setup.py" ]] || [[ "$NOTEBOOK_NAME" == "__"* ]]; then
+            continue
         fi
+        
+        cp "$notebook" "$HOME/$NOTEBOOKS_DIR/$NOTEBOOK_NAME" || true
+        echo "  [+] Copied: $NOTEBOOK_NAME"
+        NOTEBOOKS_COPIED=$((NOTEBOOKS_COPIED + 1))
     done
     
-    # Add generic locations
-    MARIMO_SOURCE_DIRS+=("/workspace")
-    
-    for SOURCE_DIR in "${MARIMO_SOURCE_DIRS[@]}"; do
-        if [ -d "$SOURCE_DIR" ]; then
-            # Find all .py files and check if they're marimo notebooks
-            for notebook in "$SOURCE_DIR"/*.py; do
-                [ -f "$notebook" ] || continue
-                # Check if file contains marimo.App (indicates it's a marimo notebook)
-                if grep -q "marimo.App" "$notebook" 2>/dev/null; then
-                    NOTEBOOK_NAME=$(basename "$notebook")
-                    cp "$notebook" "$HOME/$NOTEBOOKS_DIR/$NOTEBOOK_NAME" || true
-                    echo "  [+] Copied: $NOTEBOOK_NAME"
-                    NOTEBOOKS_COPIED=$((NOTEBOOKS_COPIED + 1))
-                fi
-            done
-        fi
-    done
+    # Clean up temporary directory
+    rm -rf "$BREV_MARIMO_TEMP"
     
     if [ "$NOTEBOOKS_COPIED" -gt 0 ]; then
-        echo "  Total notebooks copied: $NOTEBOOKS_COPIED"
+        echo "  Total Brev notebooks copied: $NOTEBOOKS_COPIED"
     else
-        echo "  No marimo notebooks found to copy"
+        echo "  No Brev notebooks found to copy"
     fi
+else
+    echo "  Warning: Could not clone Brev marimo repo, skipping"
 fi
 
 ##### Ensure notebooks directory exists with proper permissions #####
