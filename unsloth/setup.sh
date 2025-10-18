@@ -60,6 +60,16 @@ else
     eval "$(conda shell.bash hook)"
 fi
 
+# Accept conda TOS to avoid non-interactive errors
+echo "Accepting conda Terms of Service..."
+conda config --set allow_conda_downgrades true 2>/dev/null || true
+conda config --set channel_priority flexible 2>/dev/null || true
+# Accept TOS for main Anaconda channels if command exists (conda >= 24.x)
+if conda tos --help &> /dev/null; then
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true
+fi
+
 # Create unsloth environment
 if conda env list | grep -q "^unsloth "; then
     echo "Unsloth environment exists, activating..."
@@ -71,13 +81,17 @@ else
     conda activate unsloth
 fi
 
-# Install PyTorch with CUDA
-echo "Installing PyTorch with CUDA..."
-pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# Upgrade pip first
+echo "Upgrading pip..."
+pip install --upgrade pip
+
+# Install PyTorch with CUDA (ensure latest version for torch.int1 support)
+echo "Installing PyTorch with CUDA (>=2.5.0 for unsloth compatibility)..."
+pip install --upgrade --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 # Install unsloth
 echo "Installing Unsloth (this may take a few minutes)..."
-pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
+pip install --upgrade "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
 pip install --no-deps trl peft accelerate bitsandbytes
 
 # Install additional useful packages
@@ -130,10 +144,31 @@ echo ""
 echo "Verifying installation..."
 python -c "
 import torch
-from unsloth import FastLanguageModel
+import sys
+
 print(f'✓ PyTorch: {torch.__version__}')
 print(f'✓ CUDA available: {torch.cuda.is_available()}')
-print(f'✓ Unsloth imported successfully')
+
+# Check PyTorch version (simple version check)
+version_str = torch.__version__.split('+')[0]
+major, minor = map(int, version_str.split('.')[:2])
+if major < 2 or (major == 2 and minor < 5):
+    print(f'⚠️  Warning: PyTorch {torch.__version__} detected.')
+    print('   Unsloth requires PyTorch >= 2.5.0 for torch.int1 support')
+    print('   This may cause compatibility issues.')
+else:
+    print(f'✓ PyTorch version {torch.__version__} is compatible with Unsloth')
+
+# Test unsloth import
+try:
+    from unsloth import FastLanguageModel
+    print(f'✓ Unsloth imported successfully')
+except Exception as e:
+    print(f'❌ Unsloth import failed: {str(e)}')
+    print('')
+    print('This usually means PyTorch version is incompatible.')
+    print('Try running: pip install --upgrade torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121')
+    sys.exit(1)
 "
 
 echo ""
