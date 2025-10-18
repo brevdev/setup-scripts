@@ -31,24 +31,45 @@ fi
 echo "💻 Setting up terminal..."
 echo "User: $USER | Home: $HOME"
 
-# Install zsh
-sudo apt-get update
-sudo apt-get install -y zsh
+# Install zsh if not already installed
+if ! command -v zsh &> /dev/null; then
+    echo "Installing zsh..."
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq zsh
+else
+    echo "zsh already installed, skipping..."
+fi
 
-# Install oh-my-zsh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+# Install oh-my-zsh if not already installed
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    echo "Installing oh-my-zsh..."
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+else
+    echo "oh-my-zsh already installed, skipping..."
+fi
 
 # Install modern CLI tools
 echo "Installing modern CLI tools..."
-sudo apt-get install -y fzf ripgrep bat fd-find
+sudo apt-get update -qq
+sudo apt-get install -y -qq fzf ripgrep bat fd-find
 
-# Install eza (modern ls)
-wget -q -c https://github.com/eza-community/eza/releases/latest/download/eza_x86_64-unknown-linux-gnu.tar.gz -O - | tar xz
-sudo chmod +x eza
-sudo mv eza /usr/local/bin/
+# Install eza (modern ls) if not already installed
+if [ ! -f /usr/local/bin/eza ]; then
+    echo "Installing eza..."
+    wget -q -c https://github.com/eza-community/eza/releases/latest/download/eza_x86_64-unknown-linux-gnu.tar.gz -O - | tar xz
+    sudo chmod +x eza
+    sudo mv eza /usr/local/bin/
+else
+    echo "eza already installed, skipping..."
+fi
 
-# Add useful aliases
-cat >> ~/.zshrc << 'EOF'
+# Create .zshrc if it doesn't exist
+touch ~/.zshrc
+
+# Add useful aliases if not already there
+if ! grep -q "Modern CLI aliases" ~/.zshrc; then
+    echo "Adding aliases to .zshrc..."
+    cat >> ~/.zshrc << 'EOF'
 
 # Modern CLI aliases
 alias ll='eza -la'
@@ -64,9 +85,17 @@ alias gc='git commit'
 alias gp='git push'
 alias gl='git log --oneline --graph'
 EOF
+else
+    echo "Aliases already in .zshrc, skipping..."
+fi
 
-# Change default shell
-sudo chsh -s $(which zsh) $USER
+# Change default shell if not already zsh
+if [ "$SHELL" != "$(which zsh)" ]; then
+    echo "Changing default shell to zsh..."
+    sudo chsh -s $(which zsh) $USER 2>/dev/null || echo "Note: Shell change may require logout"
+else
+    echo "Default shell is already zsh"
+fi
 
 echo ""
 echo "✅ Terminal setup complete!"

@@ -60,7 +60,8 @@ if conda env list | grep -q "^unsloth "; then
     conda activate unsloth
 else
     echo "Creating unsloth environment..."
-    conda create -n unsloth python=3.10 -y
+    # Use conda-forge to avoid TOS requirements
+    conda create -n unsloth python=3.10 -c conda-forge -y
     conda activate unsloth
 fi
 

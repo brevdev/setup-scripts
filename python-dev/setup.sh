@@ -35,31 +35,45 @@ echo "🐍 Setting up Python development environment..."
 echo "User: $USER | Home: $HOME"
 
 # Install pyenv dependencies
-sudo apt-get update
-sudo apt-get install -y build-essential libssl-dev zlib1g-dev \
+sudo apt-get update -qq
+sudo apt-get install -y -qq build-essential libssl-dev zlib1g-dev \
   libbz2-dev libreadline-dev libsqlite3-dev curl \
   libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
 
-# Install pyenv
-curl https://pyenv.run | bash
+# Install pyenv if not already installed
+if [ ! -d "$HOME/.pyenv" ]; then
+    echo "Installing pyenv..."
+    curl https://pyenv.run | bash
+else
+    echo "pyenv already installed, skipping..."
+fi
 
-# Add to bashrc
-cat >> ~/.bashrc << 'EOF'
+# Add to bashrc if not already there
+if ! grep -q "PYENV_ROOT" ~/.bashrc; then
+    echo "Adding pyenv to .bashrc..."
+    cat >> ~/.bashrc << 'EOF'
 
 # pyenv configuration
 export PYENV_ROOT="$HOME/.pyenv"
 export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init -)"
 EOF
+else
+    echo "pyenv already in .bashrc, skipping..."
+fi
 
 # Load pyenv for this session
 export PYENV_ROOT="$HOME/.pyenv"
 export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init -)"
 
-# Install Python 3.11
-echo "Installing Python 3.11..."
-pyenv install 3.11
+# Install Python 3.11 if not already installed
+if ! pyenv versions | grep -q "3.11"; then
+    echo "Installing Python 3.11..."
+    pyenv install 3.11
+else
+    echo "Python 3.11 already installed, skipping..."
+fi
 pyenv global 3.11
 
 # Install common tools

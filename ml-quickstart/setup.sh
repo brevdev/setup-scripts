@@ -31,19 +31,31 @@ fi
 echo "🤖 Setting up ML environment..."
 echo "User: $USER | Home: $HOME"
 
-# Install conda (miniconda)
-wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
-rm Miniconda3-latest-Linux-x86_64.sh
+# Install conda (miniconda) if not already installed
+if [ ! -d "$HOME/miniconda3" ]; then
+    echo "Installing Miniconda..."
+    wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
+    rm Miniconda3-latest-Linux-x86_64.sh
+    
+    # Init conda
+    $HOME/miniconda3/bin/conda init bash
+else
+    echo "Miniconda already installed, skipping..."
+fi
 
-# Init conda
+# Load conda
 eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
-$HOME/miniconda3/bin/conda init bash
 
-# Create ML environment
-echo "Creating ML environment..."
-$HOME/miniconda3/bin/conda create -n ml python=3.11 -y
-eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
+# Create ML environment if it doesn't exist
+if ! conda env list | grep -q "^ml "; then
+    echo "Creating ML environment..."
+    # Use conda-forge to avoid TOS requirements
+    conda create -n ml python=3.11 -c conda-forge -y
+else
+    echo "ML environment already exists, skipping..."
+fi
+
 conda activate ml
 
 # Install PyTorch with CUDA (Brev already has CUDA installed)
