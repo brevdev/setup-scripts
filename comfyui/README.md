@@ -5,6 +5,7 @@ Powerful node-based interface for Stable Diffusion image generation.
 ## What it installs
 
 - **ComfyUI** - Node-based UI for Stable Diffusion
+- **ComfyUI-Manager** - Model manager & custom node installer (⭐ **NEW**)
 - **PyTorch** - With CUDA GPU support
 - **Stable Diffusion 1.5** - Starter model (pre-downloaded)
 - **Systemd service** - Auto-starts with system
@@ -49,9 +50,16 @@ Takes ~5-10 minutes (downloads model).
 
 **Access the UI:**
 ```bash
-# Open in browser
+# Open in browser (or via your Brev URL with port 8188)
 http://localhost:8188
 ```
+
+**⭐ Download Models (using ComfyUI-Manager):**
+1. Click the **"Manager"** button in the top menu
+2. Click **"Install Models"**
+3. Search for models (e.g., "SDXL", "Realistic Vision")
+4. Click **"Install"** - downloads directly to the remote server
+5. Models appear in ComfyUI automatically
 
 **Basic workflow:**
 1. Load the default workflow (already loaded)
@@ -78,9 +86,25 @@ cd ~/ComfyUI
 
 ## Download More Models
 
-ComfyUI supports many model types:
+### Option 1: Use ComfyUI-Manager (Recommended ⭐)
 
-### Checkpoints (Base Models)
+**In the web UI:**
+1. Click **"Manager"** button (top menu)
+2. Click **"Install Models"**
+3. Browse or search for models
+4. Click **"Install"** next to any model
+5. Models download directly to the server
+
+**Supported sources:**
+- Hugging Face models
+- CivitAI models
+- Built-in model database
+
+This is the easiest way for remote servers!
+
+### Option 2: Manual Download (Advanced)
+
+ComfyUI supports many model types. Download via SSH:
 
 **Stable Diffusion 1.5** (already installed):
 ```bash
@@ -94,10 +118,11 @@ cd ~/ComfyUI/models/checkpoints
 wget https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors
 ```
 
-**Realistic Vision v5:**
+**From CivitAI:**
 ```bash
 cd ~/ComfyUI/models/checkpoints
-# Download from: https://civitai.com/models/4201/realistic-vision-v51
+# Get download link from civitai.com, then:
+wget -O model_name.safetensors "your_download_link"
 ```
 
 ### LoRA Models
@@ -166,7 +191,23 @@ cd ~/ComfyUI/models/upscale_models
 
 ## Custom Nodes
 
-Install custom nodes for extra features:
+### Using ComfyUI-Manager (Easiest)
+
+ComfyUI-Manager is already installed! Install custom nodes via the UI:
+
+1. Click **"Manager"** button
+2. Click **"Install Custom Nodes"**
+3. Search for the node you want
+4. Click **"Install"**
+5. Click **"Restart"** when prompted
+
+**Popular custom nodes:**
+- ComfyUI-Impact-Pack - Advanced features
+- ComfyUI-AnimateDiff - Animation support
+- ComfyUI-ControlNet-Aux - ControlNet preprocessors
+- ComfyUI-VideoHelperSuite - Video generation
+
+### Manual Installation (Alternative)
 
 ```bash
 cd ~/ComfyUI/custom_nodes
@@ -175,12 +216,6 @@ cd ~/ComfyUI
 pip install -r custom_nodes/[node-name]/requirements.txt
 sudo systemctl restart comfyui
 ```
-
-**Popular custom nodes:**
-- ComfyUI-Manager - Node package manager
-- ComfyUI-Impact-Pack - Advanced features
-- ComfyUI-AnimateDiff - Animation support
-- ComfyUI-ControlNet - ControlNet integration
 
 ## GPU Memory Tips
 

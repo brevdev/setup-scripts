@@ -79,6 +79,18 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 echo "Installing ComfyUI dependencies..."
 pip install -r requirements.txt
 
+# Install ComfyUI-Manager for easy model management
+echo "Installing ComfyUI-Manager..."
+cd "$HOME/ComfyUI/custom_nodes"
+if [ ! -d "ComfyUI-Manager" ]; then
+    git clone https://github.com/ltdrdata/ComfyUI-Manager.git
+    cd ComfyUI-Manager
+    pip install -r requirements.txt
+    echo "✓ ComfyUI-Manager installed"
+else
+    echo "ComfyUI-Manager already exists"
+fi
+
 # Download a basic model (SD 1.5 - smaller and faster)
 echo "Downloading starter model (this may take a few minutes)..."
 mkdir -p "$HOME/ComfyUI/models/checkpoints"
@@ -147,12 +159,14 @@ echo ""
 echo "Location: $HOME/ComfyUI"
 echo "Models: $HOME/ComfyUI/models/checkpoints"
 echo ""
-echo "Manage:"
+echo "✨ ComfyUI-Manager installed!"
+echo "   Click the 'Manager' button in the UI to:"
+echo "   - Download models directly to the server"
+echo "   - Install custom nodes"
+echo "   - Update ComfyUI"
+echo ""
+echo "Manage service:"
 echo "  sudo systemctl status comfyui"
 echo "  sudo journalctl -u comfyui -f"
 echo "  cd ~/ComfyUI && ./start.sh  # Manual start"
-echo ""
-echo "Download more models from:"
-echo "  - https://huggingface.co/ (SDXL, etc.)"
-echo "  - https://civitai.com/ (Community models)"
 
