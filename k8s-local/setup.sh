@@ -80,8 +80,15 @@ done
 # Export for current session
 export KUBECONFIG=$HOME/.kube/config
 
-# Install kubectl alias (still useful but not required now)
-sudo snap alias microk8s.kubectl kubectl 2>/dev/null || true
+# Remove any existing snap alias (it requires group membership)
+sudo snap unalias kubectl 2>/dev/null || true
+
+# Install standalone kubectl (works without group membership!)
+echo "Installing standalone kubectl..."
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/kubectl
+echo "✓ kubectl installed to /usr/local/bin/kubectl"
 
 # Install k9s for terminal UI
 echo "Installing k9s..."
@@ -90,14 +97,6 @@ tar -xzf k9s_Linux_amd64.tar.gz
 sudo chmod +x k9s
 sudo mv k9s /usr/local/bin/
 rm k9s_Linux_amd64.tar.gz LICENSE README.md 2>/dev/null || true
-
-# Install standalone kubectl (in addition to snap alias)
-echo "Installing kubectl..."
-if ! command -v kubectl &> /dev/null || kubectl version --client 2>&1 | grep -q "microk8s"; then
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-    chmod +x kubectl
-    sudo mv kubectl /usr/local/bin/
-fi
 
 # Final permission fix for any files created by microk8s
 if [ "$(id -u)" -eq 0 ] && [ -d "$HOME/.kube" ]; then
@@ -108,23 +107,33 @@ fi
 echo ""
 echo "Verifying installation..."
 sudo microk8s status
+
+# Show which kubectl we're using
+echo ""
+echo "kubectl binary: $(which kubectl)"
+
+# Test kubectl
 export KUBECONFIG=$HOME/.kube/config
 kubectl version --client
 echo "Testing cluster access..."
-kubectl get nodes 2>/dev/null && echo "✓ kubectl can access cluster" || echo "⚠️  kubectl access will work after sourcing shell config"
+kubectl get nodes 2>/dev/null && echo "✓ kubectl can access cluster without group membership!" || echo "⚠️  kubectl will work after sourcing shell config"
 
 echo ""
 echo "✅ Kubernetes ready!"
 echo ""
 echo "Kubeconfig: ~/.kube/config"
 echo ""
-echo "Quick start:"
+echo "Quick start (works immediately!):"
 echo "  kubectl get nodes"
 echo "  kubectl get pods -A"
 echo "  k9s"
 echo ""
-echo "💡 Tips:"
-echo "  - kubectl uses ~/.kube/config (works immediately, no logout needed)"
-echo "  - microk8s commands require group membership (logout to activate)"
-echo "  - Use 'kubectl' for everything (recommended)"
+echo "💡 How it works:"
+echo "  - kubectl is standalone (/usr/local/bin/kubectl)"
+echo "  - Uses ~/.kube/config automatically"
+echo "  - No group membership needed!"
+echo "  - No 'newgrp' or logout required!"
+echo ""
+echo "Note: If you want to use 'microk8s' commands directly:"
+echo "  Run: newgrp microk8s"
 

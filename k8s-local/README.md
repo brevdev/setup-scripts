@@ -19,9 +19,12 @@ bash setup.sh
 
 Takes ~3-5 minutes.
 
-**Ready to use immediately!** The script sets up `~/.kube/config` and exports it to your current shell.
+**Ready to use immediately!** The script:
+- Installs standalone kubectl (not the snap alias)
+- Sets up `~/.kube/config` with cluster access
+- Works without group membership or `newgrp`
 
-For new terminals, the KUBECONFIG is automatically loaded via your shell config.
+kubectl works in any terminal - no special setup needed!
 
 ## What you get
 
@@ -32,7 +35,7 @@ k9s                         # Launch terminal UI
 helm list                   # List helm releases
 ```
 
-Note: kubectl and k9s use `~/.kube/config` - no group membership needed!
+**No `newgrp` or logout needed!** The script installs standalone kubectl that uses `~/.kube/config` and works immediately without group membership.
 
 ## Deploy something
 
@@ -49,5 +52,44 @@ kubectl run gpu-test --image=nvidia/cuda:12.0-base \
   --limits=nvidia.com/gpu=1 \
   -- nvidia-smi
 kubectl logs gpu-test
+```
+
+## Troubleshooting
+
+**"Insufficient permissions to access MicroK8s":**
+
+This means you're using the snap version of kubectl instead of the standalone version.
+
+```bash
+# Check which kubectl you're using
+which kubectl
+# Should output: /usr/local/bin/kubectl
+
+# If it shows /snap/bin/kubectl, remove the snap alias
+sudo snap unalias kubectl
+
+# Verify standalone kubectl works
+kubectl get nodes
+```
+
+**kubectl not found:**
+
+Make sure `/usr/local/bin` is in your PATH:
+```bash
+echo $PATH
+export PATH="/usr/local/bin:$PATH"
+```
+
+**Can't access cluster:**
+
+Ensure KUBECONFIG is set:
+```bash
+export KUBECONFIG=$HOME/.kube/config
+kubectl get nodes
+```
+
+For persistent access, it's already in your `~/.bashrc` - just open a new terminal or:
+```bash
+source ~/.bashrc
 ```
 
