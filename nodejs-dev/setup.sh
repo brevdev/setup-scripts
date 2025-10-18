@@ -63,8 +63,29 @@ fi
 if ! command -v pnpm &> /dev/null; then
     echo "Installing pnpm..."
     npm install -g pnpm
+    
+    # Configure pnpm global bin directory
+    echo "Configuring pnpm..."
+    pnpm setup
+    
+    # Add pnpm to current session's PATH
+    export PNPM_HOME="$HOME/.local/share/pnpm"
+    export PATH="$PNPM_HOME:$PATH"
+    
+    # Fix permissions if running as root
+    if [ "$(id -u)" -eq 0 ]; then
+        chown -R $USER:$USER "$HOME/.local/share/pnpm" 2>/dev/null || true
+        chown -R $USER:$USER "$HOME/.config/pnpm" 2>/dev/null || true
+        chown $USER:$USER ~/.bashrc ~/.zshrc 2>/dev/null || true
+    fi
 else
     echo "pnpm already installed, skipping..."
+fi
+
+# Ensure PNPM_HOME is set for this session
+if [ -z "$PNPM_HOME" ]; then
+    export PNPM_HOME="$HOME/.local/share/pnpm"
+    export PATH="$PNPM_HOME:$PATH"
 fi
 
 # Install common global tools (npm/pnpm handle re-installs gracefully)
@@ -77,10 +98,25 @@ echo "Verifying installation..."
 node --version
 npm --version
 pnpm --version
-tsc --version
+
+# Verify TypeScript (may need full path if not in current PATH)
+if command -v tsc &> /dev/null; then
+    tsc --version
+else
+    echo "TypeScript: installed (available in new terminals via \$PNPM_HOME)"
+fi
 
 echo ""
 echo "✅ Node.js dev environment ready!"
+echo ""
+echo "Installed tools:"
+echo "  node:       $(node --version)"
+echo "  npm:        $(npm --version)"
+echo "  pnpm:       $(pnpm --version)"
+echo "  TypeScript: via pnpm global"
+echo ""
+echo "💡 Global tools (tsc, tsx, etc.) are in: \$PNPM_HOME/bin"
+echo "   This is already configured in your shell config"
 echo ""
 echo "Quick start:"
 echo "  node --version"

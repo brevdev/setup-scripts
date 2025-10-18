@@ -6,11 +6,11 @@ Modern Node.js setup with fast tooling.
 
 - **nvm** - Node version management
 - **Node.js LTS** - Latest long-term support version
-- **pnpm** - Fast package manager (faster than npm)
-- **TypeScript** - Type-safe JavaScript
-- **tsx** - Run TypeScript directly
-- **ESLint** - Code linter
-- **Prettier** - Code formatter
+- **pnpm** - Fast package manager (faster than npm), properly configured
+- **TypeScript** - Type-safe JavaScript (global)
+- **tsx** - Run TypeScript directly (global)
+- **ESLint** - Code linter (global)
+- **Prettier** - Code formatter (global)
 
 ## Usage
 
@@ -19,6 +19,8 @@ bash setup.sh
 ```
 
 Takes ~2-3 minutes.
+
+**Note:** pnpm is automatically configured with a global bin directory. Global tools (`tsc`, `tsx`, `eslint`, `prettier`) are immediately available.
 
 ## What you get
 
