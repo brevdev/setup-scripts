@@ -66,6 +66,10 @@ if ! command -v pnpm &> /dev/null; then
     
     # Configure pnpm global bin directory
     echo "Configuring pnpm..."
+    # Set SHELL if not already set (needed when running as systemd service)
+    if [ -z "$SHELL" ]; then
+        export SHELL=/bin/bash
+    fi
     pnpm setup
     
     # Add pnpm to current session's PATH
