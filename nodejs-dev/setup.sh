@@ -35,6 +35,12 @@ echo "User: $USER | Home: $HOME"
 if [ ! -d "$HOME/.nvm" ]; then
     echo "Installing nvm..."
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+    
+    # Fix permissions if running as root
+    if [ "$(id -u)" -eq 0 ]; then
+        chown -R $USER:$USER "$HOME/.nvm"
+        chown $USER:$USER ~/.bashrc 2>/dev/null || true
+    fi
 else
     echo "nvm already installed, skipping..."
 fi

@@ -49,6 +49,12 @@ if ! command -v conda &> /dev/null; then
     rm /tmp/miniconda.sh
     eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
     conda init bash
+    
+    # Fix permissions if running as root
+    if [ "$(id -u)" -eq 0 ]; then
+        chown -R $USER:$USER "$HOME/miniconda3"
+        chown $USER:$USER ~/.bashrc 2>/dev/null || true
+    fi
 else
     echo "Conda already installed"
     eval "$(conda shell.bash hook)"

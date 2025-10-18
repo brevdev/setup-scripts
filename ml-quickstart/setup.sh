@@ -40,6 +40,12 @@ if [ ! -d "$HOME/miniconda3" ]; then
     
     # Init conda
     $HOME/miniconda3/bin/conda init bash
+    
+    # Fix permissions if running as root
+    if [ "$(id -u)" -eq 0 ]; then
+        chown -R $USER:$USER "$HOME/miniconda3"
+        chown $USER:$USER ~/.bashrc 2>/dev/null || true
+    fi
 else
     echo "Miniconda already installed, skipping..."
 fi

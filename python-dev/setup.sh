@@ -44,6 +44,11 @@ sudo apt-get install -y -qq build-essential libssl-dev zlib1g-dev \
 if [ ! -d "$HOME/.pyenv" ]; then
     echo "Installing pyenv..."
     curl https://pyenv.run | bash
+    
+    # Fix permissions if running as root
+    if [ "$(id -u)" -eq 0 ]; then
+        chown -R $USER:$USER "$HOME/.pyenv"
+    fi
 else
     echo "pyenv already installed, skipping..."
 fi
@@ -58,6 +63,11 @@ export PYENV_ROOT="$HOME/.pyenv"
 export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init -)"
 EOF
+    
+    # Fix permissions if running as root
+    if [ "$(id -u)" -eq 0 ]; then
+        chown $USER:$USER ~/.bashrc
+    fi
 else
     echo "pyenv already in .bashrc, skipping..."
 fi

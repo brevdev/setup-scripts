@@ -64,6 +64,12 @@ print("\n✅ Qdrant is working!")
 EOF
 chmod +x "$HOME/qdrant_example.py"
 
+# Fix all permissions if running as root
+if [ "$(id -u)" -eq 0 ]; then
+    chown -R $USER:$USER "$HOME/qdrant_storage"
+    chown $USER:$USER "$HOME/qdrant_example.py"
+fi
+
 # Verify
 echo ""
 echo "Verifying installation..."

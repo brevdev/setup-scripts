@@ -94,6 +94,11 @@ if __name__ == '__main__':
 EOF
 chmod +x "$HOME/ollama-examples/api_example.py"
 
+# Fix all permissions if running as root
+if [ "$(id -u)" -eq 0 ]; then
+    chown -R $USER:$USER "$HOME/ollama-examples"
+fi
+
 # Verify
 echo ""
 echo "Verifying installation..."

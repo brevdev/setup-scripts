@@ -44,6 +44,11 @@ fi
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
     echo "Installing oh-my-zsh..."
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+    
+    # Fix permissions if running as root
+    if [ "$(id -u)" -eq 0 ]; then
+        chown -R $USER:$USER "$HOME/.oh-my-zsh"
+    fi
 else
     echo "oh-my-zsh already installed, skipping..."
 fi
@@ -85,6 +90,11 @@ alias gc='git commit'
 alias gp='git push'
 alias gl='git log --oneline --graph'
 EOF
+    
+    # Fix permissions if running as root
+    if [ "$(id -u)" -eq 0 ]; then
+        chown $USER:$USER ~/.zshrc
+    fi
 else
     echo "Aliases already in .zshrc, skipping..."
 fi

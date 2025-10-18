@@ -40,6 +40,11 @@ echo "Using existing Docker installation..."
 # Create config directory
 mkdir -p "$HOME/.litellm"
 
+# Fix permissions if running as root
+if [ "$(id -u)" -eq 0 ]; then
+    chown $USER:$USER "$HOME/.litellm"
+fi
+
 # Create example config
 cat > "$HOME/.litellm/config.yaml" << 'EOF'
 model_list:
@@ -112,6 +117,11 @@ response = openai.ChatCompletion.create(
 print(response.choices[0].message.content)
 EOF
 chmod +x "$HOME/.litellm/example.py"
+
+# Fix all permissions if running as root
+if [ "$(id -u)" -eq 0 ]; then
+    chown -R $USER:$USER "$HOME/.litellm"
+fi
 
 # Verify
 echo ""

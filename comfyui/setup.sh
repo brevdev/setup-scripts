@@ -58,6 +58,11 @@ else
     cd "$HOME"
     git clone https://github.com/comfyanonymous/ComfyUI.git
     cd ComfyUI
+    
+    # Fix permissions if running as root
+    if [ "$(id -u)" -eq 0 ]; then
+        chown -R $USER:$USER "$HOME/ComfyUI"
+    fi
 fi
 
 # Create virtual environment
@@ -111,6 +116,12 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 EOF
+
+# Fix all permissions if running as root (ensure everything is user-owned)
+if [ "$(id -u)" -eq 0 ]; then
+    echo "Fixing permissions..."
+    chown -R $USER:$USER "$HOME/ComfyUI"
+fi
 
 # Enable and start service
 sudo systemctl daemon-reload
