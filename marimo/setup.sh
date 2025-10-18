@@ -138,7 +138,17 @@ pip3 install --no-cache-dir --upgrade \
     matplotlib seaborn pyarrow openai anthropic requests \
     beautifulsoup4 pillow 'marimo[sql]' duckdb sqlalchemy \
     instructor mohtml openai-whisper opencv-python python-dotenv \
-    wigglystuff yt-dlp psutil pynvml GPUtil
+    wigglystuff yt-dlp psutil pynvml GPUtil \
+    transformers networkx diffusers accelerate safetensors
+
+# Optional: Install TensorRT-related packages if CUDA is available
+(echo ""; echo "##### Installing optional NVIDIA packages (TensorRT, etc.) #####"; echo "";)
+pip3 install --no-cache-dir --upgrade torch-tensorrt 2>/dev/null || echo "  torch-tensorrt not available (needs TensorRT installed)"
+
+# Note: RAPIDS packages (cudf, cugraph) require conda installation
+# These are optional - notebooks will fall back to CPU equivalents if not available
+# To install RAPIDS:
+#   conda install -c rapidsai -c conda-forge -c nvidia cudf=24.08 cugraph=24.08 python=3.11 cuda-version=12.0
 
 ##### Always pull Brev-specific marimo notebooks and merge them in #####
 (echo ""; echo "##### Adding Brev marimo notebooks to notebooks directory #####"; echo "";)
