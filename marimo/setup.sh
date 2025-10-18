@@ -251,6 +251,7 @@ sleep 2
 if [ "$NOTEBOOKS_COPIED" -gt 0 ]; then
     (echo "Custom Notebooks: $NOTEBOOKS_COPIED notebook(s) added"; echo "";)
 fi
+(echo ""; echo "⚠️  OPEN THIS PORT ON BREV: ${MARIMO_PORT:-8080}/tcp"; echo "";)
 (echo ""; echo "Useful commands:"; echo "";)
 (echo "  - Check status:  sudo systemctl status marimo"; echo "";)
 (echo "  - View logs:     sudo journalctl -u marimo -f"; echo "";)

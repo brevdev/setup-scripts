@@ -91,5 +91,7 @@ echo ""
 echo "Quick start:"
 echo "  python --version"
 echo "  ipython"
-echo "  jupyter lab --ip=0.0.0.0"
+echo "  jupyter lab --ip=0.0.0.0 --port=8888"
+echo ""
+echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
 

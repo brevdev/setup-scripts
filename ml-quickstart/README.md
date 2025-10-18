@@ -28,6 +28,11 @@ python gpu_check.py         # Test GPU
 jupyter lab                 # Start notebooks
 ```
 
+## ⚠️ Required Port
+
+To access Jupyter Lab from outside Brev, open:
+- **8888/tcp** (Jupyter Lab default port)
+
 ## Quick GPU test
 
 ```python

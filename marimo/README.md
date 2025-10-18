@@ -16,6 +16,11 @@ Interactive notebook server with Marimo - a reactive Python notebook.
 - **Example notebooks included** - Ready to explore
 - **Battle-tested user detection** - Works with ubuntu, nvidia, shadeform users
 
+## ⚠️ Required Port
+
+To access from outside Brev, open:
+- **8080/tcp** (default marimo port)
+
 ## Usage
 
 ```bash

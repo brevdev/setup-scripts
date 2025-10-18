@@ -34,6 +34,11 @@ pyenv versions            # See installed Python versions
 jupyter lab --ip=0.0.0.0 --port=8888
 ```
 
+## ⚠️ Required Port
+
+To access Jupyter Lab from outside Brev, open:
+- **8888/tcp** (Jupyter Lab default port)
+
 **Install more packages:**
 ```bash
 pip install transformers torch

@@ -23,10 +23,18 @@ Takes ~1-2 minutes (downloads Docker images).
 - User: `postgres`
 - Password: `postgres`
 - Database: `postgres`
+- **Port to open:** `5432/tcp`
 
 **Redis:**
 - Host: `localhost:6379`
 - No password
+- **Port to open:** `6379/tcp`
+
+## ⚠️ Required Ports
+
+To access from outside Brev, open these ports:
+- **5432/tcp** - PostgreSQL
+- **6379/tcp** - Redis
 
 ## Connect to PostgreSQL
 
