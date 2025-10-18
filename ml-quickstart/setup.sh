@@ -52,7 +52,15 @@ conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvi
 
 # Install ML essentials
 echo "Installing ML packages..."
-pip install jupyter jupyterlab
+
+# Install Jupyter if not already installed (Brev often pre-installs it)
+if ! command -v jupyter &> /dev/null; then
+    echo "Installing Jupyter Lab..."
+    pip install jupyter jupyterlab
+else
+    echo "Jupyter already installed, skipping..."
+fi
+
 pip install transformers datasets accelerate
 pip install pandas matplotlib seaborn plotly
 

@@ -65,7 +65,16 @@ pyenv global 3.11
 # Install common tools
 echo "Installing common packages..."
 pip install --upgrade pip
-pip install ipython jupyter jupyterlab
+pip install ipython
+
+# Install Jupyter if not already installed (Brev often pre-installs it)
+if ! command -v jupyter &> /dev/null; then
+    echo "Installing Jupyter Lab..."
+    pip install jupyter jupyterlab
+else
+    echo "Jupyter already installed, skipping..."
+fi
+
 pip install requests pandas numpy matplotlib seaborn plotly
 pip install ruff black pytest mypy
 
