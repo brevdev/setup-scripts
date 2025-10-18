@@ -43,12 +43,61 @@ cd ml-quickstart && bash setup.sh
 **Installs:** Miniconda, PyTorch with CUDA, Jupyter Lab, transformers  
 **Time:** ~5-8 minutes (PyTorch is large)
 
+### 🦙 Ollama
+```bash
+cd ollama && bash setup.sh
+```
+**Installs:** Ollama with GPU support, llama3.2 model (pre-downloaded)  
+**Time:** ~3-5 minutes  
+**Port:** 11434/tcp for API access
+
+### 🚀 Unsloth
+```bash
+cd unsloth && bash setup.sh
+```
+**Installs:** Unsloth for fast fine-tuning, PyTorch with CUDA, LoRA/QLoRA support  
+**Time:** ~5-8 minutes  
+**Note:** Requires NVIDIA GPU
+
+### 🔄 LiteLLM
+```bash
+cd litellm && bash setup.sh
+```
+**Installs:** Universal LLM proxy (use any LLM with OpenAI API format)  
+**Time:** ~1-2 minutes  
+**Port:** 4000/tcp for API access
+
+### 🔍 Qdrant
+```bash
+cd qdrant && bash setup.sh
+```
+**Installs:** Vector database for RAG and semantic search  
+**Time:** ~1-2 minutes  
+**Port:** 6333/tcp for API + dashboard
+
+### 🎨 ComfyUI
+```bash
+cd comfyui && bash setup.sh
+```
+**Installs:** Node-based UI for Stable Diffusion, SD 1.5 model  
+**Time:** ~5-10 minutes  
+**Port:** 8188/tcp for web interface  
+**Note:** Requires NVIDIA GPU
+
 ### 🗄️ Databases
 ```bash
 cd databases && bash setup.sh
 ```
 **Installs:** PostgreSQL 16, Redis 7 (in Docker containers)  
 **Time:** ~1-2 minutes
+
+### 📓 Marimo
+```bash
+cd marimo && bash setup.sh
+```
+**Installs:** Marimo reactive notebooks as systemd service  
+**Time:** ~2-3 minutes  
+**Port:** 8080/tcp for web access
 
 ## Quick Start
 
@@ -115,6 +164,43 @@ conda activate ml
 python gpu_check.py
 ```
 
+**Local LLM with Ollama:**
+```bash
+cd ollama && bash setup.sh
+# Then:
+ollama run llama3.2
+ollama list
+```
+
+**Fast LLM fine-tuning with Unsloth:**
+```bash
+cd unsloth && bash setup.sh
+# Then:
+conda activate unsloth
+python ~/unsloth-examples/test_install.py
+```
+
+**Universal LLM proxy with LiteLLM:**
+```bash
+cd litellm && bash setup.sh
+# Then use any LLM with OpenAI SDK:
+# openai.api_base = "http://localhost:4000"
+```
+
+**Vector database with Qdrant:**
+```bash
+cd qdrant && bash setup.sh
+# Then:
+pip install qdrant-client
+python ~/qdrant_example.py
+```
+
+**Image generation with ComfyUI:**
+```bash
+cd comfyui && bash setup.sh
+# Then open: http://localhost:8188
+```
+
 **Modern terminal:**
 ```bash
 cd terminal-setup && bash setup.sh
@@ -152,8 +238,26 @@ brev-setup-scripts/
 ├── ml-quickstart/
 │   ├── setup.sh                 # PyTorch ML environment
 │   └── README.md
-└── databases/
-    ├── setup.sh                 # PostgreSQL + Redis
+├── ollama/
+│   ├── setup.sh                 # Ollama LLM inference
+│   └── README.md
+├── unsloth/
+│   ├── setup.sh                 # Unsloth fast fine-tuning
+│   └── README.md
+├── litellm/
+│   ├── setup.sh                 # Universal LLM proxy
+│   └── README.md
+├── qdrant/
+│   ├── setup.sh                 # Vector database
+│   └── README.md
+├── comfyui/
+│   ├── setup.sh                 # ComfyUI for Stable Diffusion
+│   └── README.md
+├── databases/
+│   ├── setup.sh                 # PostgreSQL + Redis
+│   └── README.md
+└── marimo/
+    ├── setup.sh                 # Marimo reactive notebooks
     └── README.md
 ```
 

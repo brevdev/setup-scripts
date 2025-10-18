@@ -1,0 +1,144 @@
+#!/bin/bash
+set -e
+
+# Detect Brev user (handles ubuntu, nvidia, shadeform, etc.)
+detect_brev_user() {
+    if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+        echo "$SUDO_USER"
+        return
+    fi
+    # Check for Brev-specific markers
+    for user_home in /home/*; do
+        username=$(basename "$user_home")
+        [ "$username" = "launchpad" ] && continue
+        if ls "$user_home"/.lifecycle-script-ls-*.log 2>/dev/null | grep -q . || \
+           [ -f "$user_home/.verb-setup.log" ] || \
+           { [ -L "$user_home/.cache" ] && [ "$(readlink "$user_home/.cache")" = "/ephemeral/cache" ]; }; then
+            echo "$username"
+            return
+        fi
+    done
+    # Fallback to common users
+    [ -d "/home/nvidia" ] && echo "nvidia" && return
+    [ -d "/home/ubuntu" ] && echo "ubuntu" && return
+    echo "ubuntu"
+}
+
+# Set USER and HOME if running as root
+if [ "$(id -u)" -eq 0 ] || [ "${USER:-}" = "root" ]; then
+    DETECTED_USER=$(detect_brev_user)
+    export USER="$DETECTED_USER"
+    export HOME="/home/$DETECTED_USER"
+fi
+
+echo "🚀 Setting up Unsloth for fast fine-tuning..."
+echo "User: $USER | Home: $HOME"
+
+# Verify GPU
+if ! command -v nvidia-smi &> /dev/null; then
+    echo "⚠️  Warning: No NVIDIA GPU detected. Unsloth requires a GPU."
+    exit 1
+fi
+echo "GPU detected: $(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)"
+
+# Install conda if needed
+if ! command -v conda &> /dev/null; then
+    echo "Installing Miniconda..."
+    wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
+    bash /tmp/miniconda.sh -b -p "$HOME/miniconda3"
+    rm /tmp/miniconda.sh
+    eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
+    conda init bash
+else
+    echo "Conda already installed"
+    eval "$(conda shell.bash hook)"
+fi
+
+# Create unsloth environment
+if conda env list | grep -q "^unsloth "; then
+    echo "Unsloth environment exists, activating..."
+    conda activate unsloth
+else
+    echo "Creating unsloth environment..."
+    conda create -n unsloth python=3.10 -y
+    conda activate unsloth
+fi
+
+# Install PyTorch with CUDA
+echo "Installing PyTorch with CUDA..."
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia -y
+
+# Install unsloth
+echo "Installing Unsloth (this may take a few minutes)..."
+pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
+pip install --no-deps trl peft accelerate bitsandbytes
+
+# Install additional useful packages
+echo "Installing supporting packages..."
+pip install datasets transformers
+pip install wandb tensorboard
+
+# Install Jupyter if not already installed
+if ! command -v jupyter &> /dev/null; then
+    echo "Installing Jupyter Lab..."
+    pip install jupyter jupyterlab
+else
+    echo "Jupyter already installed, skipping..."
+fi
+
+# Create example script
+mkdir -p "$HOME/unsloth-examples"
+cat > "$HOME/unsloth-examples/test_install.py" << 'EOF'
+#!/usr/bin/env python3
+from unsloth import FastLanguageModel
+import torch
+
+print("Loading model with Unsloth...")
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name = "unsloth/llama-3.2-1b-bnb-4bit",
+    max_seq_length = 2048,
+    dtype = None,
+    load_in_4bit = True,
+)
+
+model = FastLanguageModel.get_peft_model(
+    model, r=16,
+    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"],
+    lora_alpha = 16,
+    lora_dropout = 0,
+    bias = "none",
+)
+
+print(f"✅ Model loaded! GPU Memory: {torch.cuda.memory_allocated() / 1e9:.2f}GB")
+print("Ready for fine-tuning!")
+EOF
+chmod +x "$HOME/unsloth-examples/test_install.py"
+
+# Verify installation
+echo ""
+echo "Verifying installation..."
+python -c "
+import torch
+from unsloth import FastLanguageModel
+print(f'✓ PyTorch: {torch.__version__}')
+print(f'✓ CUDA available: {torch.cuda.is_available()}')
+print(f'✓ Unsloth imported successfully')
+"
+
+echo ""
+echo "✅ Unsloth environment ready!"
+echo ""
+echo "Quick start:"
+echo "  conda activate unsloth"
+echo "  python $HOME/unsloth-examples/test_install.py"
+echo "  jupyter lab --ip=0.0.0.0 --port=8888"
+echo ""
+echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
+echo ""
+echo "Popular models:"
+echo "  unsloth/llama-3.2-1b-bnb-4bit (smallest)"
+echo "  unsloth/llama-3.2-3b-bnb-4bit"
+echo "  unsloth/mistral-7b-bnb-4bit"
+echo ""
+echo "Docs: https://github.com/unslothai/unsloth"
+
