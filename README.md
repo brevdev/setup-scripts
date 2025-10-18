@@ -43,6 +43,14 @@ cd ml-quickstart && bash setup.sh
 **Installs:** Miniconda, PyTorch with CUDA, Jupyter Lab, transformers  
 **Time:** ~5-8 minutes (PyTorch is large)
 
+### ⚡ RAPIDS
+```bash
+cd rapids && bash setup.sh
+```
+**Installs:** GPU-accelerated pandas (cuDF), scikit-learn (cuML), example notebooks  
+**Time:** ~8-12 minutes  
+**Note:** 10-50x faster data processing on GPU. Requires NVIDIA GPU
+
 ### 🦙 Ollama
 ```bash
 cd ollama && bash setup.sh
@@ -164,6 +172,14 @@ conda activate ml
 python gpu_check.py
 ```
 
+**GPU-accelerated data science with RAPIDS:**
+```bash
+cd rapids && bash setup.sh
+# Then:
+conda activate rapids
+python ~/rapids-examples/benchmark.py  # See 20x+ speedup!
+```
+
 **Local LLM with Ollama:**
 ```bash
 cd ollama && bash setup.sh
@@ -256,8 +272,11 @@ brev-setup-scripts/
 ├── databases/
 │   ├── setup.sh                 # PostgreSQL + Redis
 │   └── README.md
-└── marimo/
-    ├── setup.sh                 # Marimo reactive notebooks
+├── marimo/
+│   ├── setup.sh                 # Marimo reactive notebooks
+│   └── README.md
+└── rapids/
+    ├── setup.sh                 # RAPIDS GPU-accelerated data science
     └── README.md
 ```
 

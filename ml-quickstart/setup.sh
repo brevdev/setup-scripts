@@ -76,7 +76,7 @@ conda activate ml
 
 # Install PyTorch with CUDA (Brev already has CUDA installed)
 echo "Installing PyTorch with CUDA..."
-conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia -y
+pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 # Install ML essentials
 echo "Installing ML packages..."

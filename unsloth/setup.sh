@@ -73,7 +73,7 @@ fi
 
 # Install PyTorch with CUDA
 echo "Installing PyTorch with CUDA..."
-conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia -y
+pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 # Install unsloth
 echo "Installing Unsloth (this may take a few minutes)..."
