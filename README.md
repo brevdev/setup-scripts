@@ -26,15 +26,15 @@ cd terminal-setup && bash setup.sh
 ```
 **Installs:** zsh, oh-my-zsh, fzf, ripgrep, bat, eza (modern CLI tools)  
 **Time:** ~2-3 minutes  
-**Note:** Log out and back in after running
+**Note:** Automatically switches to zsh when complete
 
 ### ☸️ Local Kubernetes
 ```bash
 cd k8s-local && bash setup.sh
 ```
-**Installs:** microk8s, helm, GPU operator, k9s  
+**Installs:** microk8s, helm, GPU operator, k9s, kubectl  
 **Time:** ~3-5 minutes  
-**Note:** Log out and back in after running
+**Note:** kubectl works immediately via ~/.kube/config
 
 ### 🤖 ML Quickstart
 ```bash
@@ -204,7 +204,7 @@ cd comfyui && bash setup.sh
 **Modern terminal:**
 ```bash
 cd terminal-setup && bash setup.sh
-# Log out and back in, then:
+# Automatically drops you into zsh, then:
 ll    # Better ls
 cat file.txt  # Syntax highlighting
 fzf   # Fuzzy finder

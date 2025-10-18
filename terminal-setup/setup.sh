@@ -116,5 +116,10 @@ echo "  cat file.txt    # Syntax highlighting"
 echo "  rg pattern      # Fast search"
 echo "  fzf             # Fuzzy file finder"
 echo ""
-echo "⚠️  Log out and back in to use zsh"
+echo "Starting zsh now (default shell will be zsh for new sessions)..."
+
+# Start zsh immediately if not already in it
+if [ -n "$BASH_VERSION" ]; then
+    exec zsh
+fi
 

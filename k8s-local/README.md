@@ -19,11 +19,9 @@ bash setup.sh
 
 Takes ~3-5 minutes.
 
-**Important:** After setup, either:
-- Open a new terminal, OR
-- Run: `source ~/.bashrc`
+**Ready to use immediately!** The script sets up `~/.kube/config` and exports it to your current shell.
 
-This loads the kubeconfig so kubectl/k9s can access the cluster.
+For new terminals, the KUBECONFIG is automatically loaded via your shell config.
 
 ## What you get
 

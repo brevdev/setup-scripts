@@ -18,7 +18,7 @@ Modern terminal with zsh and better CLI tools.
 bash setup.sh
 ```
 
-Takes ~2-3 minutes. **Log out and back in** after running.
+Takes ~2-3 minutes. Automatically switches you to zsh when complete.
 
 ## What you get
 
