@@ -107,6 +107,14 @@ cd marimo && bash setup.sh
 **Time:** ~2-3 minutes  
 **Port:** 8080/tcp for web access
 
+### 🛡️ earlyoom
+```bash
+cd earlyoom && bash setup.sh
+```
+**Installs:** Early OOM daemon to prevent system freezes  
+**Time:** ~1-2 minutes  
+**Note:** Monitors memory/swap and kills processes before OOM hangs
+
 ## Quick Start
 
 **Pick what you need:**
@@ -234,6 +242,14 @@ docker exec -it postgres psql -U postgres
 docker exec -it redis redis-cli
 ```
 
+**OOM protection with earlyoom:**
+```bash
+cd earlyoom && bash setup.sh
+# Then:
+sudo systemctl status earlyoom
+sudo journalctl -u earlyoom -f  # Watch memory monitoring
+```
+
 ## File Structure
 
 ```
@@ -274,6 +290,9 @@ brev-setup-scripts/
 │   └── README.md
 ├── marimo/
 │   ├── setup.sh                 # Marimo reactive notebooks
+│   └── README.md
+├── earlyoom/
+│   ├── setup.sh                 # Early OOM daemon
 │   └── README.md
 └── rapids/
     ├── setup.sh                 # RAPIDS GPU-accelerated data science
