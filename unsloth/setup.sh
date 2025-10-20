@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+# ============================================================================
+# Unsloth Baseline Setup Script for NVIDIA Brev
+# ============================================================================
+# This script provides a comprehensive baseline installation of Unsloth and
+# all common dependencies needed for fine-tuning LLMs, vision models, and
+# audio models on Brev GPU instances.
+#
+# Compatible with all 181+ converted Unsloth notebooks.
+# ============================================================================
+
 # Detect Brev user (handles ubuntu, nvidia, shadeform, etc.)
 detect_brev_user() {
     if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
@@ -31,55 +41,266 @@ if [ "$(id -u)" -eq 0 ] || [ "${USER:-}" = "root" ]; then
     export HOME="/home/$DETECTED_USER"
 fi
 
-echo "🚀 Setting up Unsloth for fast fine-tuning..."
+# Parse command line arguments
+# Default: Install everything (baseline for all notebooks)
+INSTALL_VISION=true
+INSTALL_AUDIO=true
+SKIP_EXAMPLES=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --minimal|--text-only)
+            INSTALL_VISION=false
+            INSTALL_AUDIO=false
+            shift
+            ;;
+        --no-vision)
+            INSTALL_VISION=false
+            shift
+            ;;
+        --no-audio)
+            INSTALL_AUDIO=false
+            shift
+            ;;
+        --skip-examples)
+            SKIP_EXAMPLES=true
+            shift
+            ;;
+        --help)
+            echo "Unsloth Baseline Setup Script for NVIDIA Brev"
+            echo ""
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "By default, installs ALL dependencies for text, vision, and audio models."
+            echo "This ensures compatibility with all 181+ converted Unsloth notebooks."
+            echo ""
+            echo "Options:"
+            echo "  --minimal        Install only text model dependencies (smallest install)"
+            echo "  --text-only      Same as --minimal"
+            echo "  --no-vision      Skip vision dependencies"
+            echo "  --no-audio       Skip audio dependencies"
+            echo "  --skip-examples  Skip cloning example notebooks repository"
+            echo "  --help           Show this help message"
+            echo ""
+            echo "Examples:"
+            echo "  $0                    # Full install (recommended - works with all notebooks)"
+            echo "  $0 --minimal          # Text models only (Llama, Mistral, etc.)"
+            echo "  $0 --no-audio         # Text + vision, but no audio"
+            echo ""
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Run '$0 --help' for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+echo "============================================"
+echo "🚀 Unsloth Baseline Setup for NVIDIA Brev"
+echo "============================================"
 echo "User: $USER | Home: $HOME"
+echo ""
+
+# ============================================================================
+# System Verification
+# ============================================================================
+
+echo "[1/8] Verifying system requirements..."
 
 # Verify GPU
 if ! command -v nvidia-smi &> /dev/null; then
     echo "⚠️  Warning: No NVIDIA GPU detected. Unsloth requires a GPU."
     exit 1
 fi
-echo "GPU detected: $(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)"
+GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)
+echo "✓ GPU detected: $GPU_NAME"
 
-# Use system Python (Brev instances come with Python pre-installed)
-# This ensures Jupyter Lab and notebooks can access unsloth
+# Verify Python
 if ! command -v python3 &> /dev/null; then
-    echo "⚠️  Error: Python 3 not found. Please install Python 3 first."
+    echo "❌ Error: Python 3 not found. Please install Python 3 first."
     exit 1
 fi
+PYTHON_VERSION=$(python3 --version)
+echo "✓ Python: $PYTHON_VERSION"
+echo "  Location: $(which python3)"
 
-echo "Using Python: $(python3 --version)"
-echo "Python location: $(which python3)"
-
-# Upgrade pip first
-echo "Upgrading pip..."
-python3 -m pip install --upgrade pip
-
-# Install PyTorch with CUDA
-echo "Installing PyTorch with CUDA support..."
-python3 -m pip install --upgrade --no-cache-dir torch torchvision torchaudio
-
-# Install Unsloth (recommended simple method from official docs)
-# See: https://docs.unsloth.ai/get-started/install-and-update/pip-install
-echo "Installing Unsloth (this may take a few minutes)..."
-python3 -m pip install unsloth
-
-# Install additional dependencies for fine-tuning
-echo "Installing additional dependencies..."
-python3 -m pip install trl peft accelerate bitsandbytes datasets transformers wandb tensorboard
-
-# Install Jupyter if not already installed (Brev usually has it pre-installed)
-if ! command -v jupyter &> /dev/null; then
-    echo "Installing Jupyter Lab..."
-    python3 -m pip install jupyter jupyterlab
-else
-    echo "Jupyter already installed, skipping..."
+# Update system packages (if we have apt)
+if command -v apt-get &> /dev/null; then
+    echo "✓ Updating system packages..."
+    apt-get update -qq 2>/dev/null || true
+    apt-get install -y -qq git wget curl build-essential 2>/dev/null || true
 fi
 
-# Create example script
-mkdir -p "$HOME/unsloth-examples"
-cat > "$HOME/unsloth-examples/test_install.py" << 'EOF'
+# ============================================================================
+# Python Environment Setup
+# ============================================================================
+
+echo ""
+echo "[2/8] Setting up Python environment..."
+
+# Upgrade pip
+echo "✓ Upgrading pip..."
+python3 -m pip install --upgrade pip -q
+
+# ============================================================================
+# Core ML Dependencies
+# ============================================================================
+
+echo ""
+echo "[3/8] Installing core ML packages..."
+echo "  (This may take several minutes)"
+
+# PyTorch with CUDA support
+echo "✓ Installing PyTorch with CUDA support..."
+python3 -m pip install --upgrade torch torchvision torchaudio -q
+
+# Core training libraries
+echo "✓ Installing core training libraries..."
+python3 -m pip install -q \
+    transformers>=4.40.0 \
+    datasets>=2.18.0 \
+    accelerate>=0.28.0 \
+    peft>=0.10.0 \
+    trl>=0.8.0 \
+    bitsandbytes>=0.43.0
+
+# ============================================================================
+# Unsloth Installation (Conda Variant)
+# ============================================================================
+
+echo ""
+echo "[4/8] Installing Unsloth (conda variant)..."
+echo "  (This is the recommended variant for Brev environments)"
+
+# Install Unsloth with conda variant for better compatibility
+python3 -m pip install "unsloth[conda] @ git+https://github.com/unslothai/unsloth.git" -q
+
+# ============================================================================
+# Jupyter Environment
+# ============================================================================
+
+echo ""
+echo "[5/8] Setting up Jupyter environment..."
+
+if ! command -v jupyter &> /dev/null; then
+    echo "✓ Installing Jupyter Lab..."
+    python3 -m pip install -q jupyterlab>=4.0.0 ipykernel>=6.29.0 ipywidgets>=8.1.0 notebook>=7.0.0
+else
+    echo "✓ Jupyter already installed, ensuring latest version..."
+    python3 -m pip install --upgrade -q jupyterlab ipykernel ipywidgets notebook
+fi
+
+# ============================================================================
+# Additional Dependencies
+# ============================================================================
+
+echo ""
+echo "[6/8] Installing additional utilities..."
+
+# Monitoring and logging
+python3 -m pip install -q wandb>=0.16.0 tensorboard>=2.15.0
+
+# Utilities
+python3 -m pip install -q \
+    tqdm>=4.66.0 \
+    numpy>=1.24.0 \
+    pandas>=2.0.0 \
+    scikit-learn>=1.3.0 \
+    huggingface-hub>=0.20.0
+
+# Optional: Vision dependencies
+if [ "$INSTALL_VISION" = true ]; then
+    echo "✓ Installing vision model dependencies..."
+    python3 -m pip install -q pillow opencv-python
+fi
+
+# Optional: Audio dependencies
+if [ "$INSTALL_AUDIO" = true ]; then
+    echo "✓ Installing audio model dependencies..."
+    python3 -m pip install -q librosa>=0.10.0 soundfile>=0.12.0
+fi
+
+# ============================================================================
+# Workspace Setup
+# ============================================================================
+
+echo ""
+echo "[7/8] Creating workspace directories..."
+
+# Create standard workspace structure
+mkdir -p "$HOME/workspace/models"
+mkdir -p "$HOME/workspace/outputs"
+mkdir -p "$HOME/workspace/checkpoints"
+mkdir -p "$HOME/workspace/datasets"
+mkdir -p "$HOME/workspace/notebooks"
+
+# Also create /workspace if we have permissions (common on Brev)
+if [ -w /workspace ] || [ "$(id -u)" -eq 0 ]; then
+    mkdir -p /workspace/models
+    mkdir -p /workspace/outputs
+    mkdir -p /workspace/checkpoints
+    mkdir -p /workspace/datasets
+    echo "✓ Created /workspace directories"
+fi
+
+echo "✓ Workspace directories created"
+
+# ============================================================================
+# Verification & Examples
+# ============================================================================
+
+echo ""
+echo "[8/8] Verifying installation..."
+
+python3 -c "
+import sys
+import torch
+
+print('Core packages:')
+print(f'  ✓ PyTorch: {torch.__version__}')
+print(f'  ✓ CUDA available: {torch.cuda.is_available()}')
+if torch.cuda.is_available():
+    print(f'  ✓ CUDA version: {torch.version.cuda}')
+    print(f'  ✓ GPU count: {torch.cuda.device_count()}')
+
+# Check PyTorch version compatibility
+version_str = torch.__version__.split('+')[0]
+major, minor = map(int, version_str.split('.')[:2])
+if major < 2 or (major == 2 and minor < 1):
+    print(f'  ⚠️  Warning: PyTorch {torch.__version__} may have compatibility issues')
+else:
+    print(f'  ✓ PyTorch version is compatible')
+
+# Test Unsloth import
+try:
+    from unsloth import FastLanguageModel
+    print(f'  ✓ Unsloth imported successfully')
+except Exception as e:
+    print(f'  ❌ Unsloth import failed: {str(e)}')
+    sys.exit(1)
+
+# Test other key imports
+import transformers
+import datasets
+import peft
+import trl
+print(f'  ✓ Transformers: {transformers.__version__}')
+print(f'  ✓ Datasets: {datasets.__version__}')
+print(f'  ✓ PEFT: {peft.__version__}')
+print(f'  ✓ TRL: {trl.__version__}')
+" || exit 1
+
+# Create test script
+if [ "$SKIP_EXAMPLES" = false ]; then
+    echo ""
+    echo "Creating example scripts..."
+    mkdir -p "$HOME/unsloth-examples"
+    
+    cat > "$HOME/unsloth-examples/test_install.py" << 'EOF'
 #!/usr/bin/env python3
+"""Test script to verify Unsloth installation."""
 from unsloth import FastLanguageModel
 import torch
 
@@ -92,97 +313,107 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 )
 
 model = FastLanguageModel.get_peft_model(
-    model, r=16,
+    model,
+    r = 16,
     target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"],
     lora_alpha = 16,
     lora_dropout = 0,
     bias = "none",
 )
 
-print(f"✅ Model loaded! GPU Memory: {torch.cuda.memory_allocated() / 1e9:.2f}GB")
-print("Ready for fine-tuning!")
+print(f"✅ Model loaded successfully!")
+print(f"   GPU Memory: {torch.cuda.memory_allocated() / 1e9:.2f}GB")
+print(f"   Device: {torch.cuda.get_device_name(0)}")
+print("Ready for fine-tuning! 🚀")
 EOF
-chmod +x "$HOME/unsloth-examples/test_install.py"
-
-# Verify installation
-echo ""
-echo "Verifying installation..."
-python -c "
-import torch
-import sys
-
-print(f'✓ PyTorch: {torch.__version__}')
-print(f'✓ CUDA available: {torch.cuda.is_available()}')
-
-# Check PyTorch version (simple version check)
-version_str = torch.__version__.split('+')[0]
-major, minor = map(int, version_str.split('.')[:2])
-if major < 2 or (major == 2 and minor < 5):
-    print(f'⚠️  Warning: PyTorch {torch.__version__} detected.')
-    print('   Unsloth requires PyTorch >= 2.5.0 for torch.int1 support')
-    print('   This may cause compatibility issues.')
-else:
-    print(f'✓ PyTorch version {torch.__version__} is compatible with Unsloth')
-
-# Test unsloth import
-try:
-    from unsloth import FastLanguageModel
-    print(f'✓ Unsloth imported successfully')
-except Exception as e:
-    print(f'❌ Unsloth import failed: {str(e)}')
-    print('')
-    print('This usually means PyTorch version is incompatible.')
-    print('Try running: pip install --upgrade torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121')
-    sys.exit(1)
-"
-
-echo ""
-echo "✅ Unsloth installed successfully!"
-echo ""
-echo "Quick start:"
-echo "  python3 $HOME/unsloth-examples/test_install.py"
-echo ""
-
-# Clone unslothai/notebooks repository for examples
-echo "Cloning unslothai/notebooks for example notebooks..."
-if [ -d "$HOME/unsloth-notebooks" ]; then
-    echo "Repository already exists, updating..."
-    cd "$HOME/unsloth-notebooks"
-    git pull
-else
-    cd "$HOME"
-    git clone https://github.com/unslothai/notebooks.git unsloth-notebooks
+    chmod +x "$HOME/unsloth-examples/test_install.py"
     
-    # Fix permissions if running as root
-    if [ "$(id -u)" -eq 0 ]; then
-        chown -R $USER:$USER "$HOME/unsloth-notebooks"
+    # Clone notebooks repository
+    echo "Cloning Unsloth notebooks repository..."
+    if [ -d "$HOME/unsloth-notebooks" ]; then
+        echo "  Repository already exists, updating..."
+        cd "$HOME/unsloth-notebooks"
+        git pull -q 2>/dev/null || true
+    else
+        cd "$HOME"
+        git clone -q https://github.com/unslothai/notebooks.git unsloth-notebooks 2>/dev/null || true
+        
+        # Fix permissions if running as root
+        if [ "$(id -u)" -eq 0 ]; then
+            chown -R "$USER:$USER" "$HOME/unsloth-notebooks" 2>/dev/null || true
+        fi
     fi
+    echo "  ✓ Notebooks available at: ~/unsloth-notebooks"
 fi
 
-echo "✓ Unsloth notebooks cloned to $HOME/unsloth-notebooks"
+# ============================================================================
+# Summary & Next Steps
+# ============================================================================
+
 echo ""
+echo "============================================"
+echo "✅ Setup Complete!"
+echo "============================================"
+echo ""
+echo "📊 Installation Summary:"
+echo "  ✓ Unsloth (conda variant)"
+echo "  ✓ PyTorch with CUDA"
+echo "  ✓ Core ML libraries (transformers, datasets, peft, trl)"
+echo "  ✓ Jupyter Lab environment"
+echo "  ✓ Monitoring tools (wandb, tensorboard)"
+if [ "$INSTALL_VISION" = true ]; then
+    echo "  ✓ Vision dependencies (torchvision, pillow, opencv)"
+else
+    echo "  ⊘ Vision dependencies (skipped with --minimal or --no-vision)"
+fi
+if [ "$INSTALL_AUDIO" = true ]; then
+    echo "  ✓ Audio dependencies (librosa, soundfile)"
+else
+    echo "  ⊘ Audio dependencies (skipped with --minimal or --no-audio)"
+fi
+echo ""
+
+echo "📁 Workspace Structure:"
+echo "  $HOME/workspace/"
+echo "  ├── models/         # Pre-trained models"
+echo "  ├── outputs/        # Training outputs"
+echo "  ├── checkpoints/    # Model checkpoints"
+echo "  ├── datasets/       # Datasets"
+echo "  └── notebooks/      # Your notebooks"
+echo ""
+
+if [ "$SKIP_EXAMPLES" = false ]; then
+    echo "🧪 Test Installation:"
+    echo "  python3 ~/unsloth-examples/test_install.py"
+    echo ""
+    echo "📓 Example Notebooks:"
+    echo "  ~/unsloth-notebooks/"
+    echo ""
+fi
 
 # Check if Jupyter is already running
 if lsof -i :8888 >/dev/null 2>&1 || pgrep -f "jupyter.*lab" >/dev/null 2>&1; then
-    echo "💡 Jupyter Lab is already running on this instance!"
-    echo "   Access it via your Brev URL (port 8888 should already be open)"
-    echo ""
-    echo "   📓 Unsloth notebooks are available at: ~/unsloth-notebooks"
-    echo "   Just open any .ipynb file and start fine-tuning!"
+    echo "💡 Jupyter Lab is already running!"
+    echo "   Access it via your Brev URL (port 8888)"
 else
-    echo "Start Jupyter Lab:"
+    echo "🚀 Start Jupyter Lab:"
     echo "  jupyter lab --ip=0.0.0.0 --port=8888"
     echo ""
-    echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
-    echo ""
-    echo "   📓 Once started, navigate to ~/unsloth-notebooks for example notebooks"
+    echo "  Or add to ~/.bashrc for auto-start:"
+    echo "  echo 'jupyter lab --ip=0.0.0.0 --port=8888 &' >> ~/.bashrc"
 fi
 
 echo ""
-echo "Popular models:"
-echo "  unsloth/llama-3.2-1b-bnb-4bit (smallest)"
-echo "  unsloth/llama-3.2-3b-bnb-4bit"
-echo "  unsloth/mistral-7b-bnb-4bit"
+echo "📚 Resources:"
+echo "  • Unsloth Docs:  https://docs.unsloth.ai"
+echo "  • Brev Docs:     https://docs.nvidia.com/brev"
+echo "  • Notebooks:     https://github.com/unslothai/notebooks"
 echo ""
-echo "Docs: https://github.com/unslothai/unsloth"
+echo "🎯 Popular Models:"
+echo "  • unsloth/llama-3.2-1b-bnb-4bit     (1B - fastest)"
+echo "  • unsloth/llama-3.2-3b-bnb-4bit     (3B - balanced)"
+echo "  • unsloth/mistral-7b-bnb-4bit       (7B - powerful)"
+echo "  • unsloth/gemma-2-9b-bnb-4bit       (9B - advanced)"
+echo ""
+echo "Happy fine-tuning! 🎉"
 

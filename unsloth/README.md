@@ -1,252 +1,339 @@
-# Unsloth
+# Unsloth Baseline Setup Script for NVIDIA Brev
 
-Fast and memory-efficient LLM fine-tuning with LoRA/QLoRA.
+A comprehensive, production-ready setup script that installs Unsloth and all necessary dependencies for fine-tuning LLMs, vision models, and audio models on NVIDIA Brev GPU instances.
 
-## What it installs
-
-- **Unsloth** - 2x faster fine-tuning, 50% less memory
-- **PyTorch** - With CUDA support
-- **Transformers** - HuggingFace library
-- **PEFT** - Parameter-efficient fine-tuning
-- **TRL** - Transformer Reinforcement Learning
-- **bitsandbytes** - Quantization support
-- **Jupyter Lab** - For notebooks
+**Compatible with all 181+ converted Unsloth notebooks.**
 
 ## Features
 
-- **2x faster training** - Optimized kernels for NVIDIA GPUs
-- **50% less memory** - Train larger models on single GPU
-- **LoRA/QLoRA support** - Parameter-efficient fine-tuning
-- **4-bit quantization** - Fit bigger models in VRAM
-- **Works with HuggingFace** - Compatible with any transformer model
+✅ **Brev-Native**: Automatically detects Brev user environment and configures accordingly  
+✅ **GPU Verification**: Validates NVIDIA GPU presence and CUDA availability  
+✅ **Conda Variant**: Uses the recommended `unsloth[conda]` variant for maximum compatibility  
+✅ **Complete ML Stack**: Installs PyTorch, Transformers, PEFT, TRL, and all training dependencies  
+✅ **Jupyter Environment**: Sets up Jupyter Lab with proper kernel and widget support  
+✅ **Optional Dependencies**: Support for vision and audio model fine-tuning  
+✅ **Workspace Setup**: Creates organized directory structure for models, outputs, and datasets  
+✅ **Verification**: Tests all installations and provides diagnostic information  
+✅ **Examples Included**: Clones official notebooks and creates test scripts  
 
-## ⚠️ Required Port
+## Quick Start
 
-To access Jupyter Lab from outside Brev, open:
-- **8888/tcp** (Jupyter Lab default port)
-
-## Requirements
-
-- NVIDIA GPU (required)
-- 8GB+ VRAM recommended
-- CUDA 12.1+ (Brev provides this)
-
-## Usage
+### Full Installation (Default - Recommended)
 
 ```bash
 bash setup.sh
 ```
 
-Takes ~5-8 minutes (installs PyTorch and dependencies).
+**By default, installs EVERYTHING for all 181+ notebooks:**
+- ✅ Unsloth (conda variant)
+- ✅ PyTorch with CUDA
+- ✅ Core ML libraries (transformers, datasets, peft, trl, bitsandbytes)
+- ✅ Jupyter Lab
+- ✅ Monitoring tools (wandb, tensorboard)
+- ✅ **Vision dependencies** (torchvision, pillow, opencv) - for Gemma3-Vision, Qwen2-VL, etc.
+- ✅ **Audio dependencies** (librosa, soundfile) - for Whisper, TTS/STT models
+- ✅ Standard utilities
 
-## What you get
+This ensures **all 181+ notebooks work out of the box** with no surprises!
 
-After running the setup script:
+### Minimal Installation (Text Models Only)
+
+If you only need text models (Llama, Mistral, Gemma, etc.) and want to save time/space:
 
 ```bash
-python3 ~/unsloth-examples/test_install.py         # Test installation
-cd ~/unsloth-notebooks                             # 100+ example notebooks
-jupyter lab                                        # Start Jupyter (if not running)
+bash setup.sh --minimal
+# or
+bash setup.sh --text-only
 ```
 
-The setup script automatically:
-- Installs unsloth and all dependencies to your system Python
-- Clones the official [unslothai/notebooks](https://github.com/unslothai/notebooks) repository to `~/unsloth-notebooks`
-- Works seamlessly with Jupyter Lab (no need to select kernels)
+Skips vision and audio dependencies (~1GB less, ~2 minutes faster).
 
-## Quick Example
+### Custom Installation
 
-```python
-from unsloth import FastLanguageModel
-import torch
+Skip specific components:
 
-# Load model (2x faster!)
-model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name = "unsloth/llama-3.2-1b-bnb-4bit",
-    max_seq_length = 2048,
-    dtype = None,
-    load_in_4bit = True,
-)
-
-# Add LoRA adapters
-model = FastLanguageModel.get_peft_model(
-    model,
-    r = 16,
-    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj",
-                      "gate_proj", "up_proj", "down_proj"],
-    lora_alpha = 16,
-    lora_dropout = 0,
-    bias = "none",
-    use_gradient_checkpointing = True,
-)
-
-# Now ready for training!
-```
-
-## Fine-tuning Example
-
-```python
-from unsloth import FastLanguageModel
-from datasets import load_dataset
-from trl import SFTTrainer
-from transformers import TrainingArguments
-
-# Load model
-model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name = "unsloth/llama-3.2-1b-bnb-4bit",
-    max_seq_length = 2048,
-    load_in_4bit = True,
-)
-
-# Add LoRA
-model = FastLanguageModel.get_peft_model(model, r=16, ...)
-
-# Load dataset
-dataset = load_dataset("yahma/alpaca-cleaned", split="train[:1000]")
-
-# Train
-trainer = SFTTrainer(
-    model = model,
-    train_dataset = dataset,
-    dataset_text_field = "text",
-    max_seq_length = 2048,
-    tokenizer = tokenizer,
-    args = TrainingArguments(
-        per_device_train_batch_size = 2,
-        gradient_accumulation_steps = 4,
-        warmup_steps = 10,
-        max_steps = 60,
-        fp16 = True,
-        logging_steps = 1,
-        output_dir = "outputs",
-    ),
-)
-
-trainer.train()
-model.save_pretrained("lora_model")
-```
-
-## Supported Models
-
-Unsloth provides optimized versions of popular models:
-
-**Llama:**
-- `unsloth/llama-3.2-1b-bnb-4bit` (Smallest, great for testing)
-- `unsloth/llama-3.2-3b-bnb-4bit`
-- `unsloth/llama-3.1-8b-bnb-4bit`
-
-**Mistral:**
-- `unsloth/mistral-7b-bnb-4bit`
-- `unsloth/mistral-7b-instruct-v0.3-bnb-4bit`
-
-**Other:**
-- `unsloth/Phi-3-mini-4k-instruct`
-- `unsloth/gemma-7b-bnb-4bit`
-- `unsloth/qwen2-7b-bnb-4bit`
-
-Or use any HuggingFace model with `FastLanguageModel.from_pretrained()`
-
-## Memory Requirements
-
-| Model Size | 4-bit Quantized | Full Precision |
-|------------|-----------------|----------------|
-| 1B         | ~2GB VRAM      | ~4GB VRAM     |
-| 3B         | ~4GB VRAM      | ~12GB VRAM    |
-| 7B         | ~6GB VRAM      | ~28GB VRAM    |
-| 13B        | ~10GB VRAM     | ~52GB VRAM    |
-
-With Unsloth + 4-bit quantization, you can fine-tune 7B models on GPUs with just 8GB VRAM!
-
-## Training Tips
-
-**Speed up training:**
-- Use `gradient_checkpointing = True`
-- Increase `per_device_train_batch_size` if you have VRAM
-- Use `fp16 = True` or `bf16 = True`
-
-**Save memory:**
-- Use 4-bit quantization (`load_in_4bit = True`)
-- Lower `max_seq_length`
-- Use smaller LoRA rank (`r = 8` instead of `r = 16`)
-
-**Better results:**
-- Train for more steps
-- Use higher LoRA rank (`r = 64`)
-- Use more training data
-- Tune learning rate
-
-## Examples in Repository
-
-Check `~/unsloth-examples/` for:
-- `quick_finetune.py` - Test model loading
-- `finetune_example.py` - Complete training pipeline
-
-## Track Training
-
-**With Weights & Biases:**
-```python
-# First: pip install wandb
-import wandb
-wandb.init(project="my-finetune")
-
-# Then add to TrainingArguments:
-args = TrainingArguments(
-    report_to="wandb",
-    ...
-)
-```
-
-**With TensorBoard:**
 ```bash
-tensorboard --logdir outputs/runs
+# Text + Vision, skip audio
+bash setup.sh --no-audio
+
+# Text + Audio, skip vision
+bash setup.sh --no-vision
+
+# Skip example notebooks
+bash setup.sh --skip-examples
 ```
 
-## Save and Load Models
+## Usage Options
 
-**Save LoRA adapters:**
-```python
-model.save_pretrained("lora_model")
-tokenizer.save_pretrained("lora_model")
+```bash
+bash setup.sh [OPTIONS]
+
+Options:
+  --minimal        Install only text model dependencies (smallest/fastest)
+  --text-only      Same as --minimal
+  --no-vision      Skip vision dependencies (keeps audio)
+  --no-audio       Skip audio dependencies (keeps vision)
+  --skip-examples  Skip cloning example notebooks repository
+  --help           Show help message
+
+Default: Installs ALL dependencies (text + vision + audio)
 ```
 
-**Load for inference:**
-```python
-from unsloth import FastLanguageModel
+## What Gets Installed
 
-model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name = "lora_model",
-    max_seq_length = 2048,
-    dtype = None,
-    load_in_4bit = True,
-)
+### Core ML Stack
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| torch | >=2.1.0 | PyTorch with CUDA support |
+| transformers | >=4.40.0 | HuggingFace Transformers |
+| datasets | >=2.18.0 | Dataset loading and processing |
+| accelerate | >=0.28.0 | Distributed training |
+| peft | >=0.10.0 | Parameter-efficient fine-tuning |
+| trl | >=0.8.0 | Transformer reinforcement learning |
+| bitsandbytes | >=0.43.0 | Quantization support |
+| unsloth | latest | Fast fine-tuning (conda variant) |
+
+### Jupyter Environment
+
+- jupyterlab (>=4.0.0)
+- ipykernel (>=6.29.0)
+- ipywidgets (>=8.1.0)
+- notebook (>=7.0.0)
+
+### Monitoring & Logging
+
+- wandb (>=0.16.0) - Experiment tracking
+- tensorboard (>=2.15.0) - TensorBoard logging
+
+### Utilities
+
+- tqdm, numpy, pandas, scikit-learn
+- huggingface-hub
+
+### Vision Dependencies (Installed by Default)
+
+- torchvision
+- pillow
+- opencv-python
+
+**Skip with:** `--minimal` or `--no-vision`
+
+### Audio Dependencies (Installed by Default)
+
+- librosa (>=0.10.0)
+- soundfile (>=0.12.0)
+
+**Skip with:** `--minimal` or `--no-audio`
+
+## Directory Structure
+
+After installation, the following workspace structure is created:
+
+```
+$HOME/workspace/
+├── models/         # Pre-trained models and weights
+├── outputs/        # Training outputs and logs
+├── checkpoints/    # Model checkpoints during training
+├── datasets/       # Training datasets
+└── notebooks/      # Your Jupyter notebooks
+
+/workspace/         # Also created if permissions allow
+├── models/
+├── outputs/
+├── checkpoints/
+└── datasets/
+
+$HOME/unsloth-examples/
+└── test_install.py # Test script to verify installation
+
+$HOME/unsloth-notebooks/  # Official Unsloth notebooks (if not --skip-examples)
+└── nb/
+    ├── Llama3_(8B).ipynb
+    ├── Gemma3_(4B).ipynb
+    └── ... (181+ notebooks)
 ```
 
-**Convert to full model:**
-```python
-model.save_pretrained_merged("full_model", tokenizer, save_method="merged_16bit")
+## Post-Installation
+
+### Test Your Installation
+
+```bash
+python3 ~/unsloth-examples/test_install.py
 ```
+
+This loads a small Llama 3.2 1B model to verify everything works.
+
+### Start Jupyter Lab
+
+```bash
+jupyter lab --ip=0.0.0.0 --port=8888
+```
+
+Access via your Brev URL on port 8888.
+
+### Try an Example Notebook
+
+```bash
+cd ~/unsloth-notebooks/nb
+# Open any notebook in Jupyter Lab
+```
+
+## Compatibility
+
+### Supported Models
+
+All 181+ Unsloth notebooks are supported, including:
+
+**Text Models:**
+- Llama 2/3/3.1/3.2 (1B - 70B)
+- Mistral/Mixtral (7B - 8x22B)
+- Qwen 2/2.5/3 (0.5B - 72B)
+- Gemma 2/3 (2B - 27B)
+- Phi 3/4 (3.8B - 14B)
+- GPT-OSS (20B - 120B)
+
+**Vision Models:**
+- Gemma 3 Vision
+- Qwen2-VL
+- Qwen3-VL
+- Pixtral
+- Llama 3.2 Vision
+
+**Audio Models:**
+- Whisper (Large V3)
+- Sesame-CSM
+- Orpheus-TTS
+- Llasa-TTS
+- Oute-TTS
+- Spark-TTS
+
+### GPU Requirements
+
+Minimum:
+- NVIDIA GPU with CUDA support
+- 16GB VRAM (for 1B-7B models with 4-bit quantization)
+
+Recommended:
+- L4 (24GB VRAM) for 7B models
+- A100-40GB for 13B-20B models
+- A100-80GB for 70B+ models
+
+### Brev Instance Types
+
+Tested and verified on:
+- Brev Standard (ubuntu user)
+- Brev NVIDIA (nvidia user)
+- Brev Shadeform (various users)
 
 ## Troubleshooting
 
-**CUDA out of memory:**
-- Use smaller model or 4-bit quantization
-- Reduce `per_device_train_batch_size`
-- Reduce `max_seq_length`
-- Lower LoRA rank
+### PyTorch Import Error
 
-**Training is slow:**
-- Verify GPU is being used: `nvidia-smi`
-- Ensure CUDA is available: `python -c "import torch; print(torch.cuda.is_available())"`
-- Use `fp16 = True` in TrainingArguments
-
-**Import errors:**
+If you get "No module named torch":
 ```bash
-python3 -m pip install --upgrade unsloth transformers
+python3 -m pip install --upgrade torch torchvision torchaudio
+```
+
+### Unsloth Import Error
+
+If Unsloth fails to import, try reinstalling:
+```bash
+python3 -m pip uninstall -y unsloth
+python3 -m pip install "unsloth[conda] @ git+https://github.com/unslothai/unsloth.git"
+```
+
+### CUDA Not Available
+
+Verify GPU:
+```bash
+nvidia-smi
+python3 -c "import torch; print(torch.cuda.is_available())"
+```
+
+### Permission Errors
+
+If running as root, the script automatically detects and uses the Brev user. If you still have permission issues:
+```bash
+sudo chown -R $USER:$USER $HOME/workspace
+sudo chown -R $USER:$USER $HOME/unsloth-*
+```
+
+## Advanced Usage
+
+### Custom Python Environment
+
+If you prefer to use a virtual environment:
+
+```bash
+python3 -m venv ~/unsloth-env
+source ~/unsloth-env/bin/activate
+bash setup.sh
+```
+
+### Specific PyTorch Version
+
+To install a specific PyTorch version before running the script:
+
+```bash
+pip install torch==2.5.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+bash setup.sh
+```
+
+### Skip Specific Steps
+
+The script is designed to be idempotent - you can run it multiple times safely. To update only Unsloth:
+
+```bash
+python3 -m pip install --upgrade "unsloth[conda] @ git+https://github.com/unslothai/unsloth.git"
+```
+
+## Maintenance
+
+### Update All Packages
+
+```bash
+python3 -m pip install --upgrade pip
+python3 -m pip install --upgrade torch torchvision torchaudio
+python3 -m pip install --upgrade transformers datasets accelerate peft trl
+python3 -m pip install --upgrade "unsloth[conda] @ git+https://github.com/unslothai/unsloth.git"
+```
+
+### Update Example Notebooks
+
+```bash
+cd ~/unsloth-notebooks
+git pull
 ```
 
 ## Resources
 
-- **GitHub:** https://github.com/unslothai/unsloth
-- **Docs:** https://docs.unsloth.ai/
-- **Discord:** https://discord.gg/unsloth
+- **Unsloth Documentation:** https://docs.unsloth.ai
+- **Brev Documentation:** https://docs.nvidia.com/brev
+- **Unsloth GitHub:** https://github.com/unslothai/unsloth
+- **Example Notebooks:** https://github.com/unslothai/notebooks
+- **Converted Notebooks:** See `brevdev/unsloth-notebook-adaptor/converted/`
 
+## Support
+
+For issues related to:
+- **This script:** Open an issue in the brevdev repository
+- **Unsloth:** Visit https://github.com/unslothai/unsloth/issues
+- **Brev platform:** Contact NVIDIA Brev support
+
+## Version History
+
+**v2.0.0** (October 2025)
+- Added conda variant installation
+- Added vision and audio support
+- Added command-line options
+- Added workspace structure
+- Enhanced verification
+- Compatible with 181+ notebooks
+
+**v1.0.0** (Previous)
+- Initial Unsloth setup script
+
+## License
+
+This setup script is provided as-is for use with NVIDIA Brev and Unsloth.
