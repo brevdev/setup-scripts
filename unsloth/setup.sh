@@ -41,71 +41,37 @@ if ! command -v nvidia-smi &> /dev/null; then
 fi
 echo "GPU detected: $(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)"
 
-# Install conda if needed
-if ! command -v conda &> /dev/null; then
-    echo "Installing Miniconda..."
-    wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
-    bash /tmp/miniconda.sh -b -p "$HOME/miniconda3"
-    rm /tmp/miniconda.sh
-    eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
-    conda init bash
-    
-    # Fix permissions if running as root
-    if [ "$(id -u)" -eq 0 ]; then
-        chown -R $USER:$USER "$HOME/miniconda3"
-        chown $USER:$USER ~/.bashrc 2>/dev/null || true
-    fi
-else
-    echo "Conda already installed"
-    eval "$(conda shell.bash hook)"
+# Use system Python (Brev instances come with Python pre-installed)
+# This ensures Jupyter Lab and notebooks can access unsloth
+if ! command -v python3 &> /dev/null; then
+    echo "⚠️  Error: Python 3 not found. Please install Python 3 first."
+    exit 1
 fi
 
-# Accept conda TOS to avoid non-interactive errors
-echo "Accepting conda Terms of Service..."
-conda config --set allow_conda_downgrades true 2>/dev/null || true
-conda config --set channel_priority flexible 2>/dev/null || true
-# Accept TOS for main Anaconda channels if command exists (conda >= 24.x)
-if conda tos --help &> /dev/null; then
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true
-fi
-
-# Create unsloth environment
-if conda env list | grep -q "^unsloth "; then
-    echo "Unsloth environment exists, activating..."
-    conda activate unsloth
-else
-    echo "Creating unsloth environment..."
-    # Use conda-forge to avoid TOS requirements
-    conda create -n unsloth python=3.10 -c conda-forge -y
-    conda activate unsloth
-fi
+echo "Using Python: $(python3 --version)"
+echo "Python location: $(which python3)"
 
 # Upgrade pip first
 echo "Upgrading pip..."
-pip install --upgrade pip
+python3 -m pip install --upgrade pip
 
 # Install PyTorch with CUDA
 echo "Installing PyTorch with CUDA support..."
-pip install --upgrade --no-cache-dir torch torchvision torchaudio
+python3 -m pip install --upgrade --no-cache-dir torch torchvision torchaudio
 
 # Install Unsloth (recommended simple method from official docs)
 # See: https://docs.unsloth.ai/get-started/install-and-update/pip-install
 echo "Installing Unsloth (this may take a few minutes)..."
-pip install unsloth
+python3 -m pip install unsloth
 
 # Install additional dependencies for fine-tuning
 echo "Installing additional dependencies..."
-pip install trl peft accelerate bitsandbytes datasets transformers wandb tensorboard
+python3 -m pip install trl peft accelerate bitsandbytes datasets transformers wandb tensorboard
 
-# Install ipykernel so this environment can be used in Jupyter
-pip install ipykernel
-python -m ipykernel install --user --name=unsloth --display-name="Python (unsloth)"
-
-# Install Jupyter if not already installed
+# Install Jupyter if not already installed (Brev usually has it pre-installed)
 if ! command -v jupyter &> /dev/null; then
     echo "Installing Jupyter Lab..."
-    pip install jupyter jupyterlab
+    python3 -m pip install jupyter jupyterlab
 else
     echo "Jupyter already installed, skipping..."
 fi
@@ -171,11 +137,29 @@ except Exception as e:
 "
 
 echo ""
-echo "✅ Unsloth environment ready!"
+echo "✅ Unsloth installed successfully!"
 echo ""
 echo "Quick start:"
-echo "  conda activate unsloth"
-echo "  python $HOME/unsloth-examples/test_install.py"
+echo "  python3 $HOME/unsloth-examples/test_install.py"
+echo ""
+
+# Clone unslothai/notebooks repository for examples
+echo "Cloning unslothai/notebooks for example notebooks..."
+if [ -d "$HOME/unsloth-notebooks" ]; then
+    echo "Repository already exists, updating..."
+    cd "$HOME/unsloth-notebooks"
+    git pull
+else
+    cd "$HOME"
+    git clone https://github.com/unslothai/notebooks.git unsloth-notebooks
+    
+    # Fix permissions if running as root
+    if [ "$(id -u)" -eq 0 ]; then
+        chown -R $USER:$USER "$HOME/unsloth-notebooks"
+    fi
+fi
+
+echo "✓ Unsloth notebooks cloned to $HOME/unsloth-notebooks"
 echo ""
 
 # Check if Jupyter is already running
@@ -183,15 +167,15 @@ if lsof -i :8888 >/dev/null 2>&1 || pgrep -f "jupyter.*lab" >/dev/null 2>&1; the
     echo "💡 Jupyter Lab is already running on this instance!"
     echo "   Access it via your Brev URL (port 8888 should already be open)"
     echo ""
-    echo "   To use the 'unsloth' conda environment in Jupyter:"
-    echo "   1. Open Jupyter in your browser"
-    echo "   2. Select the 'Python (unsloth)' kernel when creating a notebook"
-    echo "   3. Or activate in a terminal: conda activate unsloth"
+    echo "   📓 Unsloth notebooks are available at: ~/unsloth-notebooks"
+    echo "   Just open any .ipynb file and start fine-tuning!"
 else
     echo "Start Jupyter Lab:"
     echo "  jupyter lab --ip=0.0.0.0 --port=8888"
     echo ""
     echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
+    echo ""
+    echo "   📓 Once started, navigate to ~/unsloth-notebooks for example notebooks"
 fi
 
 echo ""

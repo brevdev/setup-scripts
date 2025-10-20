@@ -41,12 +41,18 @@ Takes ~5-8 minutes (installs PyTorch and dependencies).
 
 ## What you get
 
+After running the setup script:
+
 ```bash
-conda activate unsloth                              # Activate environment
-python ~/unsloth-examples/quick_finetune.py         # Test installation
-python ~/unsloth-examples/finetune_example.py       # Full training example
-jupyter lab                                         # Start notebooks
+python3 ~/unsloth-examples/test_install.py         # Test installation
+cd ~/unsloth-notebooks                             # 100+ example notebooks
+jupyter lab                                        # Start Jupyter (if not running)
 ```
+
+The setup script automatically:
+- Installs unsloth and all dependencies to your system Python
+- Clones the official [unslothai/notebooks](https://github.com/unslothai/notebooks) repository to `~/unsloth-notebooks`
+- Works seamlessly with Jupyter Lab (no need to select kernels)
 
 ## Quick Example
 
@@ -235,8 +241,7 @@ model.save_pretrained_merged("full_model", tokenizer, save_method="merged_16bit"
 
 **Import errors:**
 ```bash
-conda activate unsloth
-pip install --upgrade unsloth transformers
+python3 -m pip install --upgrade unsloth transformers
 ```
 
 ## Resources
