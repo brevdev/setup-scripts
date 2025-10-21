@@ -92,20 +92,35 @@ fi
 echo ""
 echo "[2/8] Setting up Python..."
 
+# Detect and use Brev virtual environment
+PYTHON_BIN="python3"
+PIP_BIN="pip3"
+
+if [ -f "$HOME/.venv/bin/python3" ]; then
+    echo "✓ Found Brev venv: $HOME/.venv"
+    PYTHON_BIN="$HOME/.venv/bin/python3"
+    PIP_BIN="$HOME/.venv/bin/pip3"
+    export PATH="$HOME/.venv/bin:$PATH"
+else
+    echo "✓ Using system Python"
+fi
+
+echo "  Python: $($PYTHON_BIN --version)"
+
 PACKAGE_MANAGER="pip"
 if command -v uv &> /dev/null; then
     PACKAGE_MANAGER="uv"
     echo "✓ Using uv (faster)"
 else
     echo "✓ Using pip"
-    python3 -m pip install --upgrade pip -q 2>/dev/null || true
+    $PYTHON_BIN -m pip install --upgrade pip -q 2>/dev/null || true
 fi
 
 install_package() {
     if [ "$PACKAGE_MANAGER" = "uv" ]; then
         uv pip install "$@" 2>&1 | grep -v "^Resolved\|^Prepared\|^Installed" || true
     else
-        python3 -m pip install "$@" -q
+        $PYTHON_BIN -m pip install "$@" -q
     fi
 }
 
@@ -184,16 +199,17 @@ else
     install_package --upgrade jupyterlab ipykernel ipywidgets notebook
 fi
 
-# Fix kernel config
+# Fix kernel config to use the correct Python
 echo "✓ Fixing kernel config..."
 KERNEL_DIR="$HOME/.local/share/jupyter/kernels/python3"
 if [ -f "$KERNEL_DIR/kernel.json" ]; then
     if grep -q '"python"' "$KERNEL_DIR/kernel.json" 2>/dev/null; then
-        sed -i.bak 's/"python"/"python3"/g' "$KERNEL_DIR/kernel.json" 2>/dev/null || \
-        sed -i '' 's/"python"/"python3"/g' "$KERNEL_DIR/kernel.json" 2>/dev/null || true
+        sed -i.bak "s|\"python\"|\"$PYTHON_BIN\"|g" "$KERNEL_DIR/kernel.json" 2>/dev/null || \
+        sed -i '' "s|\"python\"|\"$PYTHON_BIN\"|g" "$KERNEL_DIR/kernel.json" 2>/dev/null || true
     fi
 fi
-python3 -m ipykernel install --user --name=python3 --display-name="Python 3" 2>/dev/null || true
+$PYTHON_BIN -m ipykernel install --user --name=python3 --display-name="Python 3" 2>/dev/null || true
+echo "  Kernel using: $PYTHON_BIN"
 
 # Additional deps
 echo ""
@@ -230,7 +246,7 @@ echo "✓ Workspace ready"
 echo ""
 echo "[8/8] Verifying..."
 
-python3 -c "
+$PYTHON_BIN -c "
 import sys, torch
 print('✓ PyTorch:', torch.__version__)
 print('✓ CUDA:', torch.cuda.is_available())
@@ -299,7 +315,7 @@ echo "  ✓ ML libs | Jupyter | Monitoring"
 [ "$INSTALL_AUDIO" = true ] && echo "  ✓ Audio" || echo "  ⊘ Audio"
 echo ""
 echo "📁 Workspace: $HOME/workspace/"
-[ "$SKIP_EXAMPLES" = false ] && echo "🧪 Test: python3 ~/unsloth-examples/test.py"
+[ "$SKIP_EXAMPLES" = false ] && echo "🧪 Test: $PYTHON_BIN ~/unsloth-examples/test.py"
 echo ""
 
 if lsof -i :8888 >/dev/null 2>&1 || pgrep -f "jupyter.*lab" >/dev/null 2>&1; then
