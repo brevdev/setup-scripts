@@ -7,6 +7,9 @@ A comprehensive, production-ready setup script that installs Unsloth and all nec
 ## Features
 
 ✅ **Brev-Native**: Automatically detects Brev user environment and configures accordingly  
+✅ **Smart Package Manager**: Detects and uses `uv` (faster) or falls back to `pip`  
+✅ **Optimized Caching**: Automatically uses `/ephemeral` for PyTorch caches when available  
+✅ **Jupyter Kernel Fix**: Ensures Jupyter kernel uses `python3` (prevents import errors)  
 ✅ **GPU Verification**: Validates NVIDIA GPU presence and CUDA availability  
 ✅ **Conda Variant**: Uses the recommended `unsloth[conda]` variant for maximum compatibility  
 ✅ **Complete ML Stack**: Installs PyTorch, Transformers, PEFT, TRL, and all training dependencies  
@@ -226,6 +229,44 @@ Tested and verified on:
 - Brev NVIDIA (nvidia user)
 - Brev Shadeform (various users)
 
+## Environment Optimizations
+
+This script includes several Brev-specific optimizations discovered during the conversion of 181+ notebooks:
+
+### Package Manager Detection
+
+- **Automatically detects `uv`**: If available, uses `uv pip install` (faster, Brev default)
+- **Falls back to `pip`**: Works on any Python environment
+- **Transparent switching**: No configuration needed
+
+### PyTorch Cache Configuration
+
+- **Detects `/ephemeral`**: Automatically uses `/ephemeral/torch_cache` and `/ephemeral/triton_cache` when available
+- **Falls back to home**: Uses `~/.cache/torch/` if `/ephemeral` doesn't exist
+- **Persistent config**: Adds environment variables to `~/.bashrc` for future sessions
+- **Benefits**: Better performance, more storage space for compiled kernels
+
+Configured environment variables:
+```bash
+TORCHINDUCTOR_CACHE_DIR=/ephemeral/torch_cache  # or ~/.cache/torch/inductor
+TORCH_COMPILE_DIR=/ephemeral/torch_cache         # or ~/.cache/torch/inductor
+TRITON_CACHE_DIR=/ephemeral/triton_cache         # or ~/.cache/triton
+XDG_CACHE_HOME=$HOME/.cache
+```
+
+### Jupyter Kernel Fix
+
+Common issue: Jupyter kernel configured to use `python` instead of `python3`, causing:
+```
+FileNotFoundError: [Errno 2] No such file or directory: 'python'
+```
+
+**Our fix:**
+- Automatically detects incorrect kernel configuration
+- Updates `kernel.json` to use `python3`
+- Registers current Python as Jupyter kernel
+- Ensures notebooks run in the correct environment
+
 ## Troubleshooting
 
 ### PyTorch Import Error
@@ -322,6 +363,13 @@ For issues related to:
 - **Brev platform:** Contact NVIDIA Brev support
 
 ## Version History
+
+**v2.1.0** (October 2025)
+- 🚀 Auto-detect and use `uv` package manager (faster installations)
+- 🗂️ Auto-detect `/ephemeral` for PyTorch caches (better performance)
+- 🔧 Auto-fix Jupyter kernel configuration (prevents `python` not found errors)
+- 📦 Persistent cache configuration in `~/.bashrc`
+- ✅ Based on learnings from converting 181+ notebooks
 
 **v2.0.0** (October 2025)
 - Added conda variant installation
