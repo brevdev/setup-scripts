@@ -233,6 +233,19 @@ Tested and verified on:
 
 This script includes several Brev-specific optimizations discovered during the conversion of 181+ notebooks:
 
+### Virtual Environment Detection
+
+**Critical for Jupyter Lab integration:**
+
+- **Automatically detects Brev venv**: Checks for `~/.venv/bin/python3` (standard Brev setup)
+- **Installs to correct environment**: Ensures packages are available to Jupyter kernel
+- **Kernel registration**: Configures Jupyter to use the same Python as package installation
+- **Falls back gracefully**: Uses system Python if no venv exists
+
+This ensures **notebooks don't need to reinstall packages** that were already installed by `setup.sh`.
+
+See [VENV_FIX.md](./VENV_FIX.md) for detailed explanation.
+
 ### Package Manager Detection
 
 - **Automatically detects `uv`**: If available, uses `uv pip install` (faster, Brev default)
