@@ -130,16 +130,18 @@ if [ -d "/ephemeral" ] && [ -w "/ephemeral" ]; then
     export TORCHINDUCTOR_CACHE_DIR="/ephemeral/torch_cache"
     export TORCH_COMPILE_DIR="/ephemeral/torch_cache"
     export TRITON_CACHE_DIR="/ephemeral/triton_cache"
+    export TMPDIR="/ephemeral/tmp"
     # Create with proper permissions (777 for multi-user environments)
-    mkdir -p "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" 2>/dev/null || true
-    chmod -R 777 "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" 2>/dev/null || true
+    mkdir -p "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$TMPDIR" 2>/dev/null || true
+    chmod -R 777 "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$TMPDIR" 2>/dev/null || true
     # Test if we can actually write
     if ! touch "$TRITON_CACHE_DIR/.test" 2>/dev/null; then
         echo "  /ephemeral exists but not writable, falling back to home"
         export TORCHINDUCTOR_CACHE_DIR="$HOME/.cache/torch/inductor"
         export TORCH_COMPILE_DIR="$HOME/.cache/torch/inductor"
         export TRITON_CACHE_DIR="$HOME/.cache/triton"
-        mkdir -p "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" 2>/dev/null || true
+        export TMPDIR="$HOME/.cache/tmp"
+        mkdir -p "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$TMPDIR" 2>/dev/null || true
     else
         rm -f "$TRITON_CACHE_DIR/.test" 2>/dev/null || true
         echo "  Using /ephemeral"
@@ -148,9 +150,12 @@ else
     export TORCHINDUCTOR_CACHE_DIR="$HOME/.cache/torch/inductor"
     export TORCH_COMPILE_DIR="$HOME/.cache/torch/inductor"
     export TRITON_CACHE_DIR="$HOME/.cache/triton"
-    mkdir -p "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" 2>/dev/null || true
+    export TMPDIR="$HOME/.cache/tmp"
+    mkdir -p "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" "$TMPDIR" 2>/dev/null || true
     echo "  Using $HOME/.cache"
 fi
+export TEMP="$TMPDIR"
+export TMP="$TMPDIR"
 export XDG_CACHE_HOME="$HOME/.cache"
 
 # Add to bashrc with write test
@@ -163,11 +168,15 @@ if [ -d "/ephemeral" ] && [ -w "/ephemeral" ] && touch "/ephemeral/.test" 2>/dev
     export TORCHINDUCTOR_CACHE_DIR="/ephemeral/torch_cache"
     export TORCH_COMPILE_DIR="/ephemeral/torch_cache"
     export TRITON_CACHE_DIR="/ephemeral/triton_cache"
+    export TMPDIR="/ephemeral/tmp"
 else
     export TORCHINDUCTOR_CACHE_DIR="$HOME/.cache/torch/inductor"
     export TORCH_COMPILE_DIR="$HOME/.cache/torch/inductor"
     export TRITON_CACHE_DIR="$HOME/.cache/triton"
+    export TMPDIR="$HOME/.cache/tmp"
 fi
+export TEMP="$TMPDIR"
+export TMP="$TMPDIR"
 export XDG_CACHE_HOME="$HOME/.cache"
 BASHEOF
 fi
