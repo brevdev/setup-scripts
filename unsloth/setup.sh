@@ -109,14 +109,26 @@ install_package() {
     fi
 }
 
-# Configure PyTorch caches
+# Configure PyTorch caches with proper permissions
 echo "✓ Configuring cache dirs..."
 if [ -d "/ephemeral" ] && [ -w "/ephemeral" ]; then
     export TORCHINDUCTOR_CACHE_DIR="/ephemeral/torch_cache"
     export TORCH_COMPILE_DIR="/ephemeral/torch_cache"
     export TRITON_CACHE_DIR="/ephemeral/triton_cache"
+    # Create with proper permissions (777 for multi-user environments)
     mkdir -p "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" 2>/dev/null || true
-    echo "  Using /ephemeral"
+    chmod -R 777 "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" 2>/dev/null || true
+    # Test if we can actually write
+    if ! touch "$TRITON_CACHE_DIR/.test" 2>/dev/null; then
+        echo "  /ephemeral exists but not writable, falling back to home"
+        export TORCHINDUCTOR_CACHE_DIR="$HOME/.cache/torch/inductor"
+        export TORCH_COMPILE_DIR="$HOME/.cache/torch/inductor"
+        export TRITON_CACHE_DIR="$HOME/.cache/triton"
+        mkdir -p "$TORCHINDUCTOR_CACHE_DIR" "$TRITON_CACHE_DIR" 2>/dev/null || true
+    else
+        rm -f "$TRITON_CACHE_DIR/.test" 2>/dev/null || true
+        echo "  Using /ephemeral"
+    fi
 else
     export TORCHINDUCTOR_CACHE_DIR="$HOME/.cache/torch/inductor"
     export TORCH_COMPILE_DIR="$HOME/.cache/torch/inductor"
@@ -126,12 +138,13 @@ else
 fi
 export XDG_CACHE_HOME="$HOME/.cache"
 
-# Add to bashrc
+# Add to bashrc with write test
 if ! grep -q "TORCHINDUCTOR_CACHE_DIR" "$HOME/.bashrc" 2>/dev/null; then
     cat >> "$HOME/.bashrc" << 'BASHEOF'
 
 # PyTorch cache (added by unsloth setup)
-if [ -d "/ephemeral" ] && [ -w "/ephemeral" ]; then
+if [ -d "/ephemeral" ] && [ -w "/ephemeral" ] && touch "/ephemeral/.test" 2>/dev/null; then
+    rm -f "/ephemeral/.test" 2>/dev/null
     export TORCHINDUCTOR_CACHE_DIR="/ephemeral/torch_cache"
     export TORCH_COMPILE_DIR="/ephemeral/torch_cache"
     export TRITON_CACHE_DIR="/ephemeral/triton_cache"
