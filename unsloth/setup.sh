@@ -108,19 +108,45 @@ fi
 echo "  Python: $($PYTHON_BIN --version)"
 
 PACKAGE_MANAGER="pip"
+UV_BIN=""
+# Check for uv in PATH and common Brev locations
 if command -v uv &> /dev/null; then
     PACKAGE_MANAGER="uv"
+    UV_BIN="uv"
+    echo "✓ Using uv (faster)"
+elif [ -x "$HOME/.venv/bin/uv" ]; then
+    PACKAGE_MANAGER="uv"
+    UV_BIN="$HOME/.venv/bin/uv"
+    echo "✓ Using uv from venv (faster)"
+elif [ -x "$HOME/.cargo/bin/uv" ]; then
+    PACKAGE_MANAGER="uv"
+    UV_BIN="$HOME/.cargo/bin/uv"
+    export PATH="$HOME/.cargo/bin:$PATH"
+    echo "✓ Using uv (faster)"
+elif [ -x "/usr/local/bin/uv" ]; then
+    PACKAGE_MANAGER="uv"
+    UV_BIN="/usr/local/bin/uv"
     echo "✓ Using uv (faster)"
 else
     echo "✓ Using pip"
+    # Check if pip is available as a module, if not try to bootstrap it
+    if ! $PYTHON_BIN -m pip --version &>/dev/null; then
+        echo "  Bootstrapping pip..."
+        $PYTHON_BIN -m ensurepip --upgrade 2>/dev/null || true
+    fi
     $PYTHON_BIN -m pip install --upgrade pip -q 2>/dev/null || true
 fi
 
 install_package() {
     if [ "$PACKAGE_MANAGER" = "uv" ]; then
-        uv pip install "$@" 2>&1 | grep -v "^Resolved\|^Prepared\|^Installed" || true
+        $UV_BIN pip install "$@" 2>&1 | grep -v "^Resolved\|^Prepared\|^Installed" || true
     else
-        $PYTHON_BIN -m pip install "$@" -q
+        # Try pip as module first, fallback to direct pip command
+        if $PYTHON_BIN -m pip --version &>/dev/null; then
+            $PYTHON_BIN -m pip install "$@" -q
+        else
+            pip3 install "$@" -q 2>/dev/null || pip install "$@" -q
+        fi
     fi
 }
 
