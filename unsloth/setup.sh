@@ -132,20 +132,42 @@ else
     # Check if pip is available as a module, if not try to bootstrap it
     if ! $PYTHON_BIN -m pip --version &>/dev/null; then
         echo "  Bootstrapping pip..."
-        $PYTHON_BIN -m ensurepip --upgrade 2>/dev/null || true
+        if [ "$(id -u)" -eq 0 ]; then
+            sudo -H -u "$USER" $PYTHON_BIN -m ensurepip --upgrade 2>/dev/null || true
+        else
+            $PYTHON_BIN -m ensurepip --upgrade 2>/dev/null || true
+        fi
     fi
-    $PYTHON_BIN -m pip install --upgrade pip -q 2>/dev/null || true
+    if [ "$(id -u)" -eq 0 ]; then
+        sudo -H -u "$USER" $PYTHON_BIN -m pip install --upgrade pip -q 2>/dev/null || true
+    else
+        $PYTHON_BIN -m pip install --upgrade pip -q 2>/dev/null || true
+    fi
 fi
 
 install_package() {
-    if [ "$PACKAGE_MANAGER" = "uv" ]; then
-        $UV_BIN pip install "$@" 2>&1 | grep -v "^Resolved\|^Prepared\|^Installed" || true
-    else
-        # Try pip as module first, fallback to direct pip command
-        if $PYTHON_BIN -m pip --version &>/dev/null; then
-            $PYTHON_BIN -m pip install "$@" -q
+    # Run as the detected user, not as root
+    if [ "$(id -u)" -eq 0 ]; then
+        if [ "$PACKAGE_MANAGER" = "uv" ]; then
+            sudo -H -u "$USER" $UV_BIN pip install "$@" 2>&1 | grep -v "^Resolved\|^Prepared\|^Installed" || true
         else
-            pip3 install "$@" -q 2>/dev/null || pip install "$@" -q
+            # Try pip as module first, fallback to direct pip command
+            if sudo -H -u "$USER" $PYTHON_BIN -m pip --version &>/dev/null; then
+                sudo -H -u "$USER" $PYTHON_BIN -m pip install "$@" -q
+            else
+                sudo -H -u "$USER" pip3 install "$@" -q 2>/dev/null || sudo -H -u "$USER" pip install "$@" -q
+            fi
+        fi
+    else
+        if [ "$PACKAGE_MANAGER" = "uv" ]; then
+            $UV_BIN pip install "$@" 2>&1 | grep -v "^Resolved\|^Prepared\|^Installed" || true
+        else
+            # Try pip as module first, fallback to direct pip command
+            if $PYTHON_BIN -m pip --version &>/dev/null; then
+                $PYTHON_BIN -m pip install "$@" -q
+            else
+                pip3 install "$@" -q 2>/dev/null || pip install "$@" -q
+            fi
         fi
     fi
 }
@@ -243,7 +265,11 @@ if [ -f "$KERNEL_DIR/kernel.json" ]; then
         sed -i '' "s|\"python\"|\"$PYTHON_BIN\"|g" "$KERNEL_DIR/kernel.json" 2>/dev/null || true
     fi
 fi
-$PYTHON_BIN -m ipykernel install --user --name=python3 --display-name="Python 3" 2>/dev/null || true
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u "$USER" $PYTHON_BIN -m ipykernel install --user --name=python3 --display-name="Python 3" 2>/dev/null || true
+else
+    $PYTHON_BIN -m ipykernel install --user --name=python3 --display-name="Python 3" 2>/dev/null || true
+fi
 echo "  Kernel using: $PYTHON_BIN"
 
 # Additional deps

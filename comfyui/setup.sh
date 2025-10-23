@@ -67,25 +67,44 @@ fi
 
 # Create virtual environment
 echo "Creating Python environment..."
-python3 -m venv venv
-source venv/bin/activate
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER python3 -m venv venv
+else
+    python3 -m venv venv
+fi
 
 # Install PyTorch with CUDA (Brev already has CUDA)
 echo "Installing PyTorch with CUDA..."
-pip install --upgrade pip
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER bash -c "cd $HOME/ComfyUI && source venv/bin/activate && pip install --upgrade pip"
+    sudo -H -u $USER bash -c "cd $HOME/ComfyUI && source venv/bin/activate && pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121"
+else
+    source venv/bin/activate
+    pip install --upgrade pip
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+fi
 
 # Install ComfyUI requirements
 echo "Installing ComfyUI dependencies..."
-pip install -r requirements.txt
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER bash -c "cd $HOME/ComfyUI && source venv/bin/activate && pip install -r requirements.txt"
+else
+    source venv/bin/activate
+    pip install -r requirements.txt
+fi
 
 # Install ComfyUI-Manager for easy model management
 echo "Installing ComfyUI-Manager..."
 cd "$HOME/ComfyUI/custom_nodes"
 if [ ! -d "ComfyUI-Manager" ]; then
     git clone https://github.com/ltdrdata/ComfyUI-Manager.git
-    cd ComfyUI-Manager
-    pip install -r requirements.txt
+    if [ "$(id -u)" -eq 0 ]; then
+        sudo -H -u $USER bash -c "cd $HOME/ComfyUI/custom_nodes/ComfyUI-Manager && source ../../venv/bin/activate && pip install -r requirements.txt"
+    else
+        cd ComfyUI-Manager
+        source ../../venv/bin/activate
+        pip install -r requirements.txt
+    fi
     echo "✓ ComfyUI-Manager installed"
 else
     echo "ComfyUI-Manager already exists"
@@ -146,9 +165,13 @@ sleep 3
 # Verify
 echo ""
 echo "Verifying installation..."
-cd "$HOME/ComfyUI"
-source venv/bin/activate
-python -c "import torch; print(f'✓ PyTorch {torch.__version__}'); print(f'✓ CUDA available: {torch.cuda.is_available()}')"
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER bash -c "cd $HOME/ComfyUI && source venv/bin/activate && python -c \"import torch; print(f'✓ PyTorch {torch.__version__}'); print(f'✓ CUDA available: {torch.cuda.is_available()}')\""
+else
+    cd "$HOME/ComfyUI"
+    source venv/bin/activate
+    python -c "import torch; print(f'✓ PyTorch {torch.__version__}'); print(f'✓ CUDA available: {torch.cuda.is_available()}')"
+fi
 
 echo ""
 echo "✅ ComfyUI ready!"

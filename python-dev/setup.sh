@@ -86,28 +86,48 @@ else
 fi
 pyenv global 3.11
 
-# Install common tools
+# Install common tools (running as the correct user)
 echo "Installing common packages..."
-pip install --upgrade pip
-pip install ipython
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER bash -c "export PYENV_ROOT=$HOME/.pyenv && export PATH=\$PYENV_ROOT/bin:\$PATH && eval \"\$(pyenv init -)\" && pip install --upgrade pip"
+    sudo -H -u $USER bash -c "export PYENV_ROOT=$HOME/.pyenv && export PATH=\$PYENV_ROOT/bin:\$PATH && eval \"\$(pyenv init -)\" && pip install ipython"
+else
+    pip install --upgrade pip
+    pip install ipython
+fi
 
 # Install Jupyter if not already installed (Brev often pre-installs it)
 if ! command -v jupyter &> /dev/null; then
     echo "Installing Jupyter Lab..."
-    pip install jupyter jupyterlab
+    if [ "$(id -u)" -eq 0 ]; then
+        sudo -H -u $USER bash -c "export PYENV_ROOT=$HOME/.pyenv && export PATH=\$PYENV_ROOT/bin:\$PATH && eval \"\$(pyenv init -)\" && pip install jupyter jupyterlab"
+    else
+        pip install jupyter jupyterlab
+    fi
 else
     echo "Jupyter already installed, skipping..."
 fi
 
-pip install requests pandas numpy matplotlib seaborn plotly
-pip install ruff black pytest mypy
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER bash -c "export PYENV_ROOT=$HOME/.pyenv && export PATH=\$PYENV_ROOT/bin:\$PATH && eval \"\$(pyenv init -)\" && pip install requests pandas numpy matplotlib seaborn plotly"
+    sudo -H -u $USER bash -c "export PYENV_ROOT=$HOME/.pyenv && export PATH=\$PYENV_ROOT/bin:\$PATH && eval \"\$(pyenv init -)\" && pip install ruff black pytest mypy"
+else
+    pip install requests pandas numpy matplotlib seaborn plotly
+    pip install ruff black pytest mypy
+fi
 
 # Verify
 echo ""
 echo "Verifying installation..."
-python --version
-jupyter --version
-ipython --version
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER bash -c "export PYENV_ROOT=$HOME/.pyenv && export PATH=\$PYENV_ROOT/bin:\$PATH && eval \"\$(pyenv init -)\" && python --version"
+    sudo -H -u $USER bash -c "export PYENV_ROOT=$HOME/.pyenv && export PATH=\$PYENV_ROOT/bin:\$PATH && eval \"\$(pyenv init -)\" && jupyter --version"
+    sudo -H -u $USER bash -c "export PYENV_ROOT=$HOME/.pyenv && export PATH=\$PYENV_ROOT/bin:\$PATH && eval \"\$(pyenv init -)\" && ipython --version"
+else
+    python --version
+    jupyter --version
+    ipython --version
+fi
 
 echo ""
 echo "✅ Python dev environment ready!"

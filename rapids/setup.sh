@@ -89,15 +89,18 @@ else
     echo "RAPIDS environment already exists, skipping..."
 fi
 
-conda activate rapids
-
-# Install additional tools
+# Install additional tools (running as the correct user)
 echo "Installing additional tools..."
-pip install jupyterlab matplotlib seaborn plotly
-
-# Install ipykernel so this environment can be used in Jupyter
-pip install ipykernel
-python -m ipykernel install --user --name=rapids --display-name="Python (rapids)"
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate rapids && pip install jupyterlab matplotlib seaborn plotly"
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate rapids && pip install ipykernel"
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate rapids && python -m ipykernel install --user --name=rapids --display-name='Python (rapids)'"
+else
+    conda activate rapids
+    pip install jupyterlab matplotlib seaborn plotly
+    pip install ipykernel
+    python -m ipykernel install --user --name=rapids --display-name="Python (rapids)"
+fi
 
 # Create examples directory
 mkdir -p ~/rapids-examples
@@ -488,7 +491,12 @@ fi
 # Run test
 echo ""
 echo "Verifying RAPIDS installation..."
-python ~/rapids-examples/test_rapids.py
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate rapids && python ~/rapids-examples/test_rapids.py"
+else
+    conda activate rapids
+    python ~/rapids-examples/test_rapids.py
+fi
 
 echo ""
 echo "✅ RAPIDS ready!"

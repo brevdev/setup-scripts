@@ -107,7 +107,12 @@ fi
 
 ##### Install Marimo #####
 (echo ""; echo "##### Installing Marimo #####"; echo "";)
-pip3 install --upgrade marimo
+# Run as the detected user, not as root
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u "$USER" pip3 install --upgrade marimo
+else
+    pip3 install --upgrade marimo
+fi
 
 ##### Add to PATH #####
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc" 2>/dev/null || true
@@ -123,27 +128,49 @@ if [ -n "$REPO_URL" ]; then
     # Install dependencies if requirements.txt exists
     if [ -f "$HOME/$NOTEBOOKS_DIR/requirements.txt" ]; then
         (echo ""; echo "##### Installing additional dependencies from requirements.txt #####"; echo "";)
-        pip3 install -r "$HOME/$NOTEBOOKS_DIR/requirements.txt"
+        if [ "$(id -u)" -eq 0 ]; then
+            sudo -H -u "$USER" pip3 install -r "$HOME/$NOTEBOOKS_DIR/requirements.txt"
+        else
+            pip3 install -r "$HOME/$NOTEBOOKS_DIR/requirements.txt"
+        fi
     fi
 fi
 
 ##### Install PyTorch with CUDA support and common packages #####
 (echo ""; echo "##### Installing PyTorch with CUDA support #####"; echo "";)
-pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u "$USER" pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+else
+    pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+fi
 
 # Install common packages for marimo examples
 (echo ""; echo "##### Installing common packages for marimo examples #####"; echo "";)
-pip3 install --no-cache-dir --upgrade \
-    polars altair plotly pandas numpy scipy scikit-learn \
-    matplotlib seaborn pyarrow openai anthropic requests \
-    beautifulsoup4 pillow 'marimo[sql]' duckdb sqlalchemy \
-    instructor mohtml openai-whisper opencv-python python-dotenv \
-    wigglystuff yt-dlp psutil pynvml GPUtil \
-    transformers networkx diffusers accelerate safetensors
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u "$USER" pip3 install --no-cache-dir --upgrade \
+        polars altair plotly pandas numpy scipy scikit-learn \
+        matplotlib seaborn pyarrow openai anthropic requests \
+        beautifulsoup4 pillow 'marimo[sql]' duckdb sqlalchemy \
+        instructor mohtml openai-whisper opencv-python python-dotenv \
+        wigglystuff yt-dlp psutil pynvml GPUtil \
+        transformers networkx diffusers accelerate safetensors
+else
+    pip3 install --no-cache-dir --upgrade \
+        polars altair plotly pandas numpy scipy scikit-learn \
+        matplotlib seaborn pyarrow openai anthropic requests \
+        beautifulsoup4 pillow 'marimo[sql]' duckdb sqlalchemy \
+        instructor mohtml openai-whisper opencv-python python-dotenv \
+        wigglystuff yt-dlp psutil pynvml GPUtil \
+        transformers networkx diffusers accelerate safetensors
+fi
 
 # Optional: Install TensorRT-related packages if CUDA is available
 (echo ""; echo "##### Installing optional NVIDIA packages (TensorRT, etc.) #####"; echo "";)
-pip3 install --no-cache-dir --upgrade torch-tensorrt 2>/dev/null || echo "  torch-tensorrt not available (needs TensorRT installed)"
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u "$USER" pip3 install --no-cache-dir --upgrade torch-tensorrt 2>/dev/null || echo "  torch-tensorrt not available (needs TensorRT installed)"
+else
+    pip3 install --no-cache-dir --upgrade torch-tensorrt 2>/dev/null || echo "  torch-tensorrt not available (needs TensorRT installed)"
+fi
 
 # Note: RAPIDS packages (cudf, cugraph) require conda installation
 # These are optional - notebooks will fall back to CPU equivalents if not available

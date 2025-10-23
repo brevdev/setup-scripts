@@ -72,11 +72,14 @@ else
     echo "ML environment already exists, skipping..."
 fi
 
-conda activate ml
-
-# Install PyTorch with CUDA (Brev already has CUDA installed)
+# Install packages into conda environment (running as the correct user)
 echo "Installing PyTorch with CUDA..."
-pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121"
+else
+    conda activate ml
+    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+fi
 
 # Install ML essentials
 echo "Installing ML packages..."
@@ -84,17 +87,28 @@ echo "Installing ML packages..."
 # Install Jupyter if not already installed (Brev often pre-installs it)
 if ! command -v jupyter &> /dev/null; then
     echo "Installing Jupyter Lab..."
-    pip install jupyter jupyterlab
+    if [ "$(id -u)" -eq 0 ]; then
+        sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && pip install jupyter jupyterlab"
+    else
+        conda activate ml
+        pip install jupyter jupyterlab
+    fi
 else
     echo "Jupyter already installed, skipping..."
 fi
 
-pip install transformers datasets accelerate
-pip install pandas matplotlib seaborn plotly
-
-# Install ipykernel so this environment can be used in Jupyter
-pip install ipykernel
-python -m ipykernel install --user --name=ml --display-name="Python (ml)"
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && pip install transformers datasets accelerate"
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && pip install pandas matplotlib seaborn plotly"
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && pip install ipykernel"
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && python -m ipykernel install --user --name=ml --display-name='Python (ml)'"
+else
+    conda activate ml
+    pip install transformers datasets accelerate
+    pip install pandas matplotlib seaborn plotly
+    pip install ipykernel
+    python -m ipykernel install --user --name=ml --display-name="Python (ml)"
+fi
 
 # Create test script
 mkdir -p ~/ml-test
@@ -110,7 +124,12 @@ EOF
 # Verify
 echo ""
 echo "Verifying installation..."
-python ~/ml-test/gpu_check.py
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && python ~/ml-test/gpu_check.py"
+else
+    conda activate ml
+    python ~/ml-test/gpu_check.py
+fi
 
 echo ""
 echo "✅ ML environment ready!"
