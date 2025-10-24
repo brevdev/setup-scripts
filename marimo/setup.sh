@@ -238,6 +238,16 @@ fi
 
 ##### Create systemd service for Marimo #####
 (echo ""; echo "##### Setting up Marimo systemd service #####"; echo "";)
+
+# Determine where marimo is actually installed
+if [ "$(id -u)" -eq 0 ]; then
+    # When running as root, marimo was installed as the user to ~/.local/bin
+    MARIMO_BIN="$HOME/.local/bin/marimo"
+else
+    # When not root, check where marimo actually is
+    MARIMO_BIN=$(which marimo 2>/dev/null || echo "$HOME/.local/bin/marimo")
+fi
+
 sudo tee /etc/systemd/system/marimo.service > /dev/null << EOF
 [Unit]
 Description=Marimo Notebook Server
@@ -247,10 +257,10 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$HOME/$NOTEBOOKS_DIR
-Environment="PATH=/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin"
+Environment="PATH=$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="HOME=$HOME"
 Environment="MARIMO_PORT=${MARIMO_PORT:-8080}"
-ExecStart=/usr/local/bin/marimo edit --host 0.0.0.0 --port \${MARIMO_PORT} --headless --no-token
+ExecStart=$MARIMO_BIN edit --host 0.0.0.0 --port \${MARIMO_PORT} --headless --no-token
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -264,6 +274,17 @@ EOF
 ##### Fix ownership of shell config files if running as root #####
 if [ "$(id -u)" -eq 0 ] && [ -n "$USER" ]; then
     chown -R "$USER:$USER" "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null || true
+fi
+
+##### Verify marimo binary is accessible #####
+echo "Verifying marimo installation..."
+if [ -f "$MARIMO_BIN" ]; then
+    echo "✓ Found marimo at: $MARIMO_BIN"
+    ls -la "$MARIMO_BIN"
+else
+    echo "⚠️  Warning: marimo binary not found at expected location: $MARIMO_BIN"
+    echo "   Searching for marimo..."
+    find "$HOME/.local/bin" -name "marimo" -type f 2>/dev/null || echo "   Not found in ~/.local/bin"
 fi
 
 ##### Enable and start Marimo service #####
