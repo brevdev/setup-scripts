@@ -45,48 +45,72 @@ echo "✓ GPU count: $GPU_COUNT"
 # Install conda (miniconda) if not already installed
 if [ ! -d "$HOME/miniconda3" ]; then
     echo "Installing Miniconda..."
-    wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-    bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
-    rm Miniconda3-latest-Linux-x86_64.sh
-    
-    # Init conda
-    $HOME/miniconda3/bin/conda init bash
-    
-    # Fix permissions if running as root
     if [ "$(id -u)" -eq 0 ]; then
-        chown -R $USER:$USER "$HOME/miniconda3"
-        chown $USER:$USER ~/.bashrc 2>/dev/null || true
+        # Install as the user, not as root
+        sudo -H -u $USER bash -c "cd $HOME && wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3 && rm Miniconda3-latest-Linux-x86_64.sh"
+        # Init conda as the user
+        sudo -H -u $USER bash -c "$HOME/miniconda3/bin/conda init bash"
+    else
+        wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+        bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
+        rm Miniconda3-latest-Linux-x86_64.sh
+        $HOME/miniconda3/bin/conda init bash
     fi
 else
     echo "Miniconda already installed, skipping..."
 fi
 
-# Load conda
-eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
-
-# Accept conda TOS to avoid non-interactive errors
-echo "Accepting conda Terms of Service..."
-conda config --set allow_conda_downgrades true 2>/dev/null || true
-conda config --set channel_priority flexible 2>/dev/null || true
-if conda tos --help &> /dev/null; then
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true
-fi
-
-# Create RAPIDS environment if it doesn't exist
-if ! conda env list | grep -q "^rapids "; then
-    echo "Creating RAPIDS environment..."
-    echo "This will take 5-10 minutes (RAPIDS is large)..."
+# Configure and create conda environment as the user
+if [ "$(id -u)" -eq 0 ]; then
+    # Accept conda TOS to avoid non-interactive errors
+    echo "Accepting conda Terms of Service..."
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda config --set allow_conda_downgrades true 2>/dev/null || true"
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda config --set channel_priority flexible 2>/dev/null || true"
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda tos --help &> /dev/null && conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true"
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda tos --help &> /dev/null && conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true"
     
-    # Detect CUDA version from nvidia-smi
-    CUDA_VERSION=$(nvidia-smi | grep "CUDA Version" | awk '{print $9}' | cut -d. -f1,2)
-    echo "Detected CUDA version: $CUDA_VERSION"
-    
-    # RAPIDS requires CUDA 11.x or 12.x - use 12.0 for broad compatibility
-    conda create -n rapids -c rapidsai -c conda-forge -c nvidia \
-        rapids=24.08 python=3.11 cuda-version=12.0 -y
+    # Create RAPIDS environment if it doesn't exist
+    if ! sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda env list | grep -q '^rapids '"; then
+        echo "Creating RAPIDS environment..."
+        echo "This will take 5-10 minutes (RAPIDS is large)..."
+        
+        # Detect CUDA version from nvidia-smi
+        CUDA_VERSION=$(nvidia-smi | grep "CUDA Version" | awk '{print $9}' | cut -d. -f1,2)
+        echo "Detected CUDA version: $CUDA_VERSION"
+        
+        # RAPIDS requires CUDA 11.x or 12.x - use 12.0 for broad compatibility
+        sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda create -n rapids -c rapidsai -c conda-forge -c nvidia rapids=24.08 python=3.11 cuda-version=12.0 -y"
+    else
+        echo "RAPIDS environment already exists, skipping..."
+    fi
 else
-    echo "RAPIDS environment already exists, skipping..."
+    # Load conda
+    eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
+    
+    # Accept conda TOS to avoid non-interactive errors
+    echo "Accepting conda Terms of Service..."
+    conda config --set allow_conda_downgrades true 2>/dev/null || true
+    conda config --set channel_priority flexible 2>/dev/null || true
+    if conda tos --help &> /dev/null; then
+        conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true
+        conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true
+    fi
+    
+    # Create RAPIDS environment if it doesn't exist
+    if ! conda env list | grep -q "^rapids "; then
+        echo "Creating RAPIDS environment..."
+        echo "This will take 5-10 minutes (RAPIDS is large)..."
+        
+        # Detect CUDA version from nvidia-smi
+        CUDA_VERSION=$(nvidia-smi | grep "CUDA Version" | awk '{print $9}' | cut -d. -f1,2)
+        echo "Detected CUDA version: $CUDA_VERSION"
+        
+        # RAPIDS requires CUDA 11.x or 12.x - use 12.0 for broad compatibility
+        conda create -n rapids -c rapidsai -c conda-forge -c nvidia \
+            rapids=24.08 python=3.11 cuda-version=12.0 -y
+    else
+        echo "RAPIDS environment already exists, skipping..."
+    fi
 fi
 
 # Install additional tools (running as the correct user)

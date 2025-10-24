@@ -34,42 +34,60 @@ echo "User: $USER | Home: $HOME"
 # Install conda (miniconda) if not already installed
 if [ ! -d "$HOME/miniconda3" ]; then
     echo "Installing Miniconda..."
-    wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-    bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
-    rm Miniconda3-latest-Linux-x86_64.sh
-    
-    # Init conda
-    $HOME/miniconda3/bin/conda init bash
-    
-    # Fix permissions if running as root
     if [ "$(id -u)" -eq 0 ]; then
-        chown -R $USER:$USER "$HOME/miniconda3"
-        chown $USER:$USER ~/.bashrc 2>/dev/null || true
+        # Install as the user, not as root
+        sudo -H -u $USER bash -c "cd $HOME && wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3 && rm Miniconda3-latest-Linux-x86_64.sh"
+        # Init conda as the user
+        sudo -H -u $USER bash -c "$HOME/miniconda3/bin/conda init bash"
+    else
+        wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+        bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
+        rm Miniconda3-latest-Linux-x86_64.sh
+        $HOME/miniconda3/bin/conda init bash
     fi
 else
     echo "Miniconda already installed, skipping..."
 fi
 
-# Load conda
-eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
-
-# Accept conda TOS to avoid non-interactive errors
-echo "Accepting conda Terms of Service..."
-conda config --set allow_conda_downgrades true 2>/dev/null || true
-conda config --set channel_priority flexible 2>/dev/null || true
-# Accept TOS for main Anaconda channels if command exists (conda >= 24.x)
-if conda tos --help &> /dev/null; then
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true
-fi
-
-# Create ML environment if it doesn't exist
-if ! conda env list | grep -q "^ml "; then
-    echo "Creating ML environment..."
-    # Use conda-forge to avoid TOS requirements
-    conda create -n ml python=3.11 -c conda-forge -y
+# Configure and create conda environment as the user
+if [ "$(id -u)" -eq 0 ]; then
+    # Accept conda TOS to avoid non-interactive errors
+    echo "Accepting conda Terms of Service..."
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda config --set allow_conda_downgrades true 2>/dev/null || true"
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda config --set channel_priority flexible 2>/dev/null || true"
+    # Accept TOS for main Anaconda channels if command exists (conda >= 24.x)
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda tos --help &> /dev/null && conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true"
+    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda tos --help &> /dev/null && conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true"
+    
+    # Create ML environment if it doesn't exist
+    if ! sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda env list | grep -q '^ml '"; then
+        echo "Creating ML environment..."
+        sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda create -n ml python=3.11 -c conda-forge -y"
+    else
+        echo "ML environment already exists, skipping..."
+    fi
 else
-    echo "ML environment already exists, skipping..."
+    # Load conda
+    eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
+    
+    # Accept conda TOS to avoid non-interactive errors
+    echo "Accepting conda Terms of Service..."
+    conda config --set allow_conda_downgrades true 2>/dev/null || true
+    conda config --set channel_priority flexible 2>/dev/null || true
+    # Accept TOS for main Anaconda channels if command exists (conda >= 24.x)
+    if conda tos --help &> /dev/null; then
+        conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true
+        conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true
+    fi
+    
+    # Create ML environment if it doesn't exist
+    if ! conda env list | grep -q "^ml "; then
+        echo "Creating ML environment..."
+        # Use conda-forge to avoid TOS requirements
+        conda create -n ml python=3.11 -c conda-forge -y
+    else
+        echo "ML environment already exists, skipping..."
+    fi
 fi
 
 # Install packages into conda environment (running as the correct user)

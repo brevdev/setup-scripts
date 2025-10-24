@@ -43,20 +43,20 @@ sudo apt-get install -y -qq build-essential libssl-dev zlib1g-dev \
 # Install pyenv if not already installed
 if [ ! -d "$HOME/.pyenv" ]; then
     echo "Installing pyenv..."
-    curl https://pyenv.run | bash
-    
-    # Fix permissions if running as root
     if [ "$(id -u)" -eq 0 ]; then
-        chown -R $USER:$USER "$HOME/.pyenv"
+        # Install pyenv as the user, not as root
+        sudo -H -u $USER bash -c "curl https://pyenv.run | bash"
+    else
+        curl https://pyenv.run | bash
     fi
 else
     echo "pyenv already installed, skipping..."
 fi
 
 # Add to bashrc if not already there
-if ! grep -q "PYENV_ROOT" ~/.bashrc; then
+if ! grep -q "PYENV_ROOT" "$HOME/.bashrc" 2>/dev/null; then
     echo "Adding pyenv to .bashrc..."
-    cat >> ~/.bashrc << 'EOF'
+    cat >> "$HOME/.bashrc" << 'EOF'
 
 # pyenv configuration
 export PYENV_ROOT="$HOME/.pyenv"
@@ -66,25 +66,37 @@ EOF
     
     # Fix permissions if running as root
     if [ "$(id -u)" -eq 0 ]; then
-        chown $USER:$USER ~/.bashrc
+        chown $USER:$USER "$HOME/.bashrc"
     fi
 else
     echo "pyenv already in .bashrc, skipping..."
 fi
 
-# Load pyenv for this session
-export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
-
-# Install Python 3.11 if not already installed
-if ! pyenv versions | grep -q "3.11"; then
-    echo "Installing Python 3.11..."
-    pyenv install 3.11
+# Install Python 3.11 if not already installed (as the user)
+if [ "$(id -u)" -eq 0 ]; then
+    # Check if Python 3.11 is installed
+    if ! sudo -H -u $USER bash -c "export PYENV_ROOT=$HOME/.pyenv && export PATH=\$PYENV_ROOT/bin:\$PATH && eval \"\$(pyenv init -)\" && pyenv versions | grep -q '3.11'"; then
+        echo "Installing Python 3.11..."
+        sudo -H -u $USER bash -c "export PYENV_ROOT=$HOME/.pyenv && export PATH=\$PYENV_ROOT/bin:\$PATH && eval \"\$(pyenv init -)\" && pyenv install 3.11"
+    else
+        echo "Python 3.11 already installed, skipping..."
+    fi
+    # Set global Python version
+    sudo -H -u $USER bash -c "export PYENV_ROOT=$HOME/.pyenv && export PATH=\$PYENV_ROOT/bin:\$PATH && eval \"\$(pyenv init -)\" && pyenv global 3.11"
 else
-    echo "Python 3.11 already installed, skipping..."
+    # Running as user - load pyenv for this session
+    export PYENV_ROOT="$HOME/.pyenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(pyenv init -)"
+    
+    if ! pyenv versions | grep -q "3.11"; then
+        echo "Installing Python 3.11..."
+        pyenv install 3.11
+    else
+        echo "Python 3.11 already installed, skipping..."
+    fi
+    pyenv global 3.11
 fi
-pyenv global 3.11
 
 # Install common tools (running as the correct user)
 echo "Installing common packages..."
