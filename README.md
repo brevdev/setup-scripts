@@ -134,19 +134,6 @@ cd terminal-setup && bash setup.sh
 cd k8s-local && bash setup.sh
 ```
 
-**Use with Brev CLI:**
-
-```bash
-# Start workspace with Python setup
-brev start my-workspace \
-  --setup-script https://raw.githubusercontent.com/brevdev/setup-scripts/main/python-dev/setup.sh
-
-# Start workspace with ML setup
-brev start my-ml-workspace \
-  --gpu g5.xlarge \
-  --setup-script https://raw.githubusercontent.com/brevdev/setup-scripts/main/ml-quickstart/setup.sh
-```
-
 ## Design Philosophy
 
 Each script is:
