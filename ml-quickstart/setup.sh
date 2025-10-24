@@ -31,59 +31,61 @@ fi
 echo "🤖 Setting up ML environment..."
 echo "User: $USER | Home: $HOME"
 
-# Install conda (miniconda) if not already installed
-if [ ! -d "$HOME/miniconda3" ]; then
-    echo "Installing Miniconda..."
+# Install conda (miniforge - open source, no licensing restrictions) if not already installed
+if [ ! -d "$HOME/miniforge3" ] && [ ! -d "$HOME/miniconda3" ]; then
+    echo "Installing Miniforge (conda-forge based, fully open source)..."
     if [ "$(id -u)" -eq 0 ]; then
         # Install as the user, not as root
-        sudo -H -u $USER bash -c "cd $HOME && wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3 && rm Miniconda3-latest-Linux-x86_64.sh"
+        sudo -H -u $USER bash -c "cd $HOME && wget -q --show-progress https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh && bash Miniforge3-Linux-x86_64.sh -b -p $HOME/miniforge3 && rm Miniforge3-Linux-x86_64.sh"
         # Init conda as the user
-        sudo -H -u $USER bash -c "$HOME/miniconda3/bin/conda init bash"
+        sudo -H -u $USER bash -c "$HOME/miniforge3/bin/conda init bash"
     else
-        wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-        bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
-        rm Miniconda3-latest-Linux-x86_64.sh
-        $HOME/miniconda3/bin/conda init bash
+        wget -q --show-progress https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+        bash Miniforge3-Linux-x86_64.sh -b -p $HOME/miniforge3
+        rm Miniforge3-Linux-x86_64.sh
+        $HOME/miniforge3/bin/conda init bash
     fi
 else
-    echo "Miniconda already installed, skipping..."
+    if [ -d "$HOME/miniconda3" ]; then
+        echo "⚠️  Warning: Miniconda detected. Consider migrating to Miniforge for licensing compliance."
+        echo "   Miniforge uses conda-forge channels (fully open source, no commercial licensing restrictions)."
+    else
+        echo "Miniforge already installed, skipping..."
+    fi
+fi
+
+# Set CONDA_HOME based on what's installed (prefer miniforge)
+if [ -d "$HOME/miniforge3" ]; then
+    CONDA_HOME="$HOME/miniforge3"
+elif [ -d "$HOME/miniconda3" ]; then
+    CONDA_HOME="$HOME/miniconda3"
+else
+    echo "❌ Error: No conda installation found."
+    exit 1
 fi
 
 # Configure and create conda environment as the user
 if [ "$(id -u)" -eq 0 ]; then
-    # Accept conda TOS to avoid non-interactive errors
-    echo "Accepting conda Terms of Service..."
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda config --set allow_conda_downgrades true 2>/dev/null || true"
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda config --set channel_priority flexible 2>/dev/null || true"
-    # Accept TOS for main Anaconda channels if command exists (conda >= 24.x)
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda tos --help &> /dev/null && conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true"
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda tos --help &> /dev/null && conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true"
+    # Configure conda (conda-forge is default in Miniforge, no TOS required)
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda config --set channel_priority flexible 2>/dev/null || true"
     
     # Create ML environment if it doesn't exist
-    if ! sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda env list | grep -q '^ml '"; then
+    if ! sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda env list | grep -q '^ml '"; then
         echo "Creating ML environment..."
-        sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda create -n ml python=3.11 -c conda-forge -y"
+        sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda create -n ml python=3.11 -c conda-forge -y"
     else
         echo "ML environment already exists, skipping..."
     fi
 else
     # Load conda
-    eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
+    eval "$($CONDA_HOME/bin/conda shell.bash hook)"
     
-    # Accept conda TOS to avoid non-interactive errors
-    echo "Accepting conda Terms of Service..."
-    conda config --set allow_conda_downgrades true 2>/dev/null || true
+    # Configure conda (conda-forge is default in Miniforge, no TOS required)
     conda config --set channel_priority flexible 2>/dev/null || true
-    # Accept TOS for main Anaconda channels if command exists (conda >= 24.x)
-    if conda tos --help &> /dev/null; then
-        conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true
-        conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true
-    fi
     
     # Create ML environment if it doesn't exist
     if ! conda env list | grep -q "^ml "; then
         echo "Creating ML environment..."
-        # Use conda-forge to avoid TOS requirements
         conda create -n ml python=3.11 -c conda-forge -y
     else
         echo "ML environment already exists, skipping..."
@@ -93,7 +95,7 @@ fi
 # Install packages into conda environment (running as the correct user)
 echo "Installing PyTorch with CUDA..."
 if [ "$(id -u)" -eq 0 ]; then
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121"
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda activate ml && pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121"
 else
     conda activate ml
     pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
@@ -106,7 +108,7 @@ echo "Installing ML packages..."
 if ! command -v jupyter &> /dev/null; then
     echo "Installing Jupyter Lab..."
     if [ "$(id -u)" -eq 0 ]; then
-        sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && pip install jupyter jupyterlab"
+        sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda activate ml && pip install jupyter jupyterlab"
     else
         conda activate ml
         pip install jupyter jupyterlab
@@ -116,10 +118,10 @@ else
 fi
 
 if [ "$(id -u)" -eq 0 ]; then
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && pip install transformers datasets accelerate"
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && pip install pandas matplotlib seaborn plotly"
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && pip install ipykernel"
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && python -m ipykernel install --user --name=ml --display-name='Python (ml)'"
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda activate ml && pip install transformers datasets accelerate"
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda activate ml && pip install pandas matplotlib seaborn plotly"
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda activate ml && pip install ipykernel"
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda activate ml && python -m ipykernel install --user --name=ml --display-name='Python (ml)'"
 else
     conda activate ml
     pip install transformers datasets accelerate
@@ -143,7 +145,7 @@ EOF
 echo ""
 echo "Verifying installation..."
 if [ "$(id -u)" -eq 0 ]; then
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate ml && python ~/ml-test/gpu_check.py"
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda activate ml && python ~/ml-test/gpu_check.py"
 else
     conda activate ml
     python ~/ml-test/gpu_check.py
@@ -172,4 +174,5 @@ else
     echo ""
     echo "⚠️  To access Jupyter from outside Brev, open port: 8888/tcp"
 fi
+
 

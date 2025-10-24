@@ -42,35 +42,46 @@ GPU_COUNT=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 echo "✓ GPU detected: $GPU_NAME"
 echo "✓ GPU count: $GPU_COUNT"
 
-# Install conda (miniconda) if not already installed
-if [ ! -d "$HOME/miniconda3" ]; then
-    echo "Installing Miniconda..."
+# Install conda (miniforge - open source, no licensing restrictions) if not already installed
+if [ ! -d "$HOME/miniforge3" ] && [ ! -d "$HOME/miniconda3" ]; then
+    echo "Installing Miniforge (conda-forge based, fully open source)..."
     if [ "$(id -u)" -eq 0 ]; then
         # Install as the user, not as root
-        sudo -H -u $USER bash -c "cd $HOME && wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3 && rm Miniconda3-latest-Linux-x86_64.sh"
+        sudo -H -u $USER bash -c "cd $HOME && wget -q --show-progress https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh && bash Miniforge3-Linux-x86_64.sh -b -p $HOME/miniforge3 && rm Miniforge3-Linux-x86_64.sh"
         # Init conda as the user
-        sudo -H -u $USER bash -c "$HOME/miniconda3/bin/conda init bash"
+        sudo -H -u $USER bash -c "$HOME/miniforge3/bin/conda init bash"
     else
-        wget -q --show-progress https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-        bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
-        rm Miniconda3-latest-Linux-x86_64.sh
-        $HOME/miniconda3/bin/conda init bash
+        wget -q --show-progress https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+        bash Miniforge3-Linux-x86_64.sh -b -p $HOME/miniforge3
+        rm Miniforge3-Linux-x86_64.sh
+        $HOME/miniforge3/bin/conda init bash
     fi
 else
-    echo "Miniconda already installed, skipping..."
+    if [ -d "$HOME/miniconda3" ]; then
+        echo "⚠️  Warning: Miniconda detected. Consider migrating to Miniforge for licensing compliance."
+        echo "   Miniforge uses conda-forge channels (fully open source, no commercial licensing restrictions)."
+    else
+        echo "Miniforge already installed, skipping..."
+    fi
+fi
+
+# Set CONDA_HOME based on what's installed (prefer miniforge)
+if [ -d "$HOME/miniforge3" ]; then
+    CONDA_HOME="$HOME/miniforge3"
+elif [ -d "$HOME/miniconda3" ]; then
+    CONDA_HOME="$HOME/miniconda3"
+else
+    echo "❌ Error: No conda installation found."
+    exit 1
 fi
 
 # Configure and create conda environment as the user
 if [ "$(id -u)" -eq 0 ]; then
-    # Accept conda TOS to avoid non-interactive errors
-    echo "Accepting conda Terms of Service..."
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda config --set allow_conda_downgrades true 2>/dev/null || true"
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda config --set channel_priority flexible 2>/dev/null || true"
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda tos --help &> /dev/null && conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true"
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda tos --help &> /dev/null && conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true"
+    # Configure conda (conda-forge is default in Miniforge, no TOS required)
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda config --set channel_priority flexible 2>/dev/null || true"
     
     # Create RAPIDS environment if it doesn't exist
-    if ! sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda env list | grep -q '^rapids '"; then
+    if ! sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda env list | grep -q '^rapids '"; then
         echo "Creating RAPIDS environment..."
         echo "This will take 5-10 minutes (RAPIDS is large)..."
         
@@ -79,22 +90,16 @@ if [ "$(id -u)" -eq 0 ]; then
         echo "Detected CUDA version: $CUDA_VERSION"
         
         # RAPIDS requires CUDA 11.x or 12.x - use 12.0 for broad compatibility
-        sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda create -n rapids -c rapidsai -c conda-forge -c nvidia rapids=24.08 python=3.11 cuda-version=12.0 -y"
+        sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda create -n rapids -c rapidsai -c conda-forge -c nvidia rapids=24.08 python=3.11 cuda-version=12.0 -y"
     else
         echo "RAPIDS environment already exists, skipping..."
     fi
 else
     # Load conda
-    eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
+    eval "$($CONDA_HOME/bin/conda shell.bash hook)"
     
-    # Accept conda TOS to avoid non-interactive errors
-    echo "Accepting conda Terms of Service..."
-    conda config --set allow_conda_downgrades true 2>/dev/null || true
+    # Configure conda (conda-forge is default in Miniforge, no TOS required)
     conda config --set channel_priority flexible 2>/dev/null || true
-    if conda tos --help &> /dev/null; then
-        conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true
-        conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true
-    fi
     
     # Create RAPIDS environment if it doesn't exist
     if ! conda env list | grep -q "^rapids "; then
@@ -116,9 +121,9 @@ fi
 # Install additional tools (running as the correct user)
 echo "Installing additional tools..."
 if [ "$(id -u)" -eq 0 ]; then
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate rapids && pip install jupyterlab matplotlib seaborn plotly"
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate rapids && pip install ipykernel"
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate rapids && python -m ipykernel install --user --name=rapids --display-name='Python (rapids)'"
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda activate rapids && pip install jupyterlab matplotlib seaborn plotly"
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda activate rapids && pip install ipykernel"
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda activate rapids && python -m ipykernel install --user --name=rapids --display-name='Python (rapids)'"
 else
     conda activate rapids
     pip install jupyterlab matplotlib seaborn plotly
@@ -220,7 +225,7 @@ EOF
 # Fix all permissions if running as root
 if [ "$(id -u)" -eq 0 ]; then
     echo "Fixing permissions..."
-    chown -R $USER:$USER "$HOME/miniconda3"
+    chown -R $USER:$USER "$CONDA_HOME"
     chown -R $USER:$USER "$HOME/rapids-examples"
 fi
 
@@ -228,7 +233,7 @@ fi
 echo ""
 echo "Verifying RAPIDS installation..."
 if [ "$(id -u)" -eq 0 ]; then
-    sudo -H -u $USER bash -c "source $HOME/miniconda3/bin/activate && conda activate rapids && python ~/rapids-examples/test_rapids.py"
+    sudo -H -u $USER bash -c "source $CONDA_HOME/bin/activate && conda activate rapids && python ~/rapids-examples/test_rapids.py"
 else
     conda activate rapids
     python ~/rapids-examples/test_rapids.py
@@ -273,5 +278,6 @@ echo "  - Use cuDF for datasets >1M rows (best speedup)"
 echo "  - Keep data on GPU between operations"
 echo "  - Use .to_pandas() only when necessary"
 echo "  - Multi-GPU? Use dask-cuda for scaling"
+
 
 
