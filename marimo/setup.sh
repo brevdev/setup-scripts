@@ -136,7 +136,7 @@ if [ -n "$REPO_URL" ]; then
     fi
 fi
 
-##### Install PyTorch with CUDA support and common packages #####
+##### Install PyTorch with CUDA support #####
 (echo ""; echo "##### Installing PyTorch with CUDA support #####"; echo "";)
 if [ "$(id -u)" -eq 0 ]; then
     sudo -H -u "$USER" pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
@@ -144,24 +144,33 @@ else
     pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 fi
 
+# Install transformers IMMEDIATELY after PyTorch to ensure torchvision compatibility
+(echo ""; echo "##### Installing transformers (requires compatible torchvision) #####"; echo "";)
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u "$USER" pip3 install --no-cache-dir transformers accelerate safetensors
+else
+    pip3 install --no-cache-dir transformers accelerate safetensors
+fi
+
 # Install common packages for marimo examples
+# NOTE: Do NOT use --upgrade for packages that depend on torchvision
 (echo ""; echo "##### Installing common packages for marimo examples #####"; echo "";)
 if [ "$(id -u)" -eq 0 ]; then
-    sudo -H -u "$USER" pip3 install --no-cache-dir --upgrade \
+    sudo -H -u "$USER" pip3 install --no-cache-dir \
         polars altair plotly pandas numpy scipy scikit-learn \
         matplotlib seaborn pyarrow openai anthropic requests \
         beautifulsoup4 pillow 'marimo[sql]' duckdb sqlalchemy \
         instructor mohtml openai-whisper opencv-python python-dotenv \
         wigglystuff yt-dlp psutil pynvml GPUtil \
-        transformers networkx diffusers accelerate safetensors
+        networkx diffusers
 else
-    pip3 install --no-cache-dir --upgrade \
+    pip3 install --no-cache-dir \
         polars altair plotly pandas numpy scipy scikit-learn \
         matplotlib seaborn pyarrow openai anthropic requests \
         beautifulsoup4 pillow 'marimo[sql]' duckdb sqlalchemy \
         instructor mohtml openai-whisper opencv-python python-dotenv \
         wigglystuff yt-dlp psutil pynvml GPUtil \
-        transformers networkx diffusers accelerate safetensors
+        networkx diffusers
 fi
 
 # Optional: Install TensorRT-related packages if CUDA is available
