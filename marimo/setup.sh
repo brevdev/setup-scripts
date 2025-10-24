@@ -144,17 +144,26 @@ else
     pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 fi
 
-# Install transformers IMMEDIATELY after PyTorch to ensure torchvision compatibility
-(echo ""; echo "##### Installing transformers (requires compatible torchvision) #####"; echo "";)
+# LOCK torchvision version to prevent upgrades that break compatibility
+(echo ""; echo "##### Locking torchvision version to prevent upgrades #####"; echo "";)
 if [ "$(id -u)" -eq 0 ]; then
-    sudo -H -u "$USER" pip3 install --no-cache-dir transformers accelerate safetensors
+    TORCHVISION_VERSION=$(sudo -H -u "$USER" python3 -c "import torchvision; print(torchvision.__version__)" 2>/dev/null || echo "")
 else
-    pip3 install --no-cache-dir transformers accelerate safetensors
+    TORCHVISION_VERSION=$(python3 -c "import torchvision; print(torchvision.__version__)" 2>/dev/null || echo "")
+fi
+echo "  Locked torchvision version: $TORCHVISION_VERSION"
+
+# Install transformers with LOCKED torchvision version
+(echo ""; echo "##### Installing transformers (with locked torchvision) #####"; echo "";)
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -H -u "$USER" pip3 install --no-cache-dir transformers accelerate safetensors "torchvision==$TORCHVISION_VERSION"
+else
+    pip3 install --no-cache-dir transformers accelerate safetensors "torchvision==$TORCHVISION_VERSION"
 fi
 
-# Install common packages for marimo examples
-# NOTE: Do NOT use --upgrade for packages that depend on torchvision
-(echo ""; echo "##### Installing common packages for marimo examples #####"; echo "";)
+# Install common packages for marimo examples with LOCKED torchvision
+# This ensures no package can upgrade torchvision to an incompatible version
+(echo ""; echo "##### Installing common packages (with locked torchvision) #####"; echo "";)
 if [ "$(id -u)" -eq 0 ]; then
     sudo -H -u "$USER" pip3 install --no-cache-dir \
         polars altair plotly pandas numpy scipy scikit-learn \
@@ -162,7 +171,7 @@ if [ "$(id -u)" -eq 0 ]; then
         beautifulsoup4 pillow 'marimo[sql]' duckdb sqlalchemy \
         instructor mohtml openai-whisper opencv-python python-dotenv \
         wigglystuff yt-dlp psutil pynvml GPUtil \
-        networkx diffusers
+        networkx diffusers "torchvision==$TORCHVISION_VERSION"
 else
     pip3 install --no-cache-dir \
         polars altair plotly pandas numpy scipy scikit-learn \
@@ -170,15 +179,15 @@ else
         beautifulsoup4 pillow 'marimo[sql]' duckdb sqlalchemy \
         instructor mohtml openai-whisper opencv-python python-dotenv \
         wigglystuff yt-dlp psutil pynvml GPUtil \
-        networkx diffusers
+        networkx diffusers "torchvision==$TORCHVISION_VERSION"
 fi
 
 # Optional: Install TensorRT-related packages if CUDA is available
 (echo ""; echo "##### Installing optional NVIDIA packages (TensorRT, etc.) #####"; echo "";)
 if [ "$(id -u)" -eq 0 ]; then
-    sudo -H -u "$USER" pip3 install --no-cache-dir --upgrade torch-tensorrt 2>/dev/null || echo "  torch-tensorrt not available (needs TensorRT installed)"
+    sudo -H -u "$USER" pip3 install --no-cache-dir torch-tensorrt "torchvision==$TORCHVISION_VERSION" 2>/dev/null || echo "  torch-tensorrt not available (needs TensorRT installed)"
 else
-    pip3 install --no-cache-dir --upgrade torch-tensorrt 2>/dev/null || echo "  torch-tensorrt not available (needs TensorRT installed)"
+    pip3 install --no-cache-dir torch-tensorrt "torchvision==$TORCHVISION_VERSION" 2>/dev/null || echo "  torch-tensorrt not available (needs TensorRT installed)"
 fi
 
 # Note: RAPIDS packages (cudf, cugraph) require conda installation
