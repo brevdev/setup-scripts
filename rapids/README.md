@@ -13,6 +13,7 @@ RAPIDS is NVIDIA's suite of GPU-accelerated data science libraries that provide 
 
 ## What it installs
 
+- **Miniforge** - Open source conda package manager (fully licensed for commercial use)
 - **RAPIDS 24.08** - Full suite (cuDF, cuML, cuGraph)
 - **Python 3.11** - In isolated conda environment
 - **Jupyter Lab** - For interactive development

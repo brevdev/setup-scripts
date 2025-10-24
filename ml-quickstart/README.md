@@ -4,7 +4,7 @@ PyTorch with CUDA for GPU-accelerated machine learning.
 
 ## What it installs
 
-- **Miniconda** - Package manager
+- **Miniforge** - Open source conda package manager (fully licensed for commercial use)
 - **Python 3.11** - Latest Python
 - **PyTorch with CUDA 12.1** - GPU-accelerated ML
 - **Jupyter Lab** - Interactive notebooks
