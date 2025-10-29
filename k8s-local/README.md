@@ -11,9 +11,26 @@ microk8s with GPU support for local Kubernetes development.
 - **helm** - Standalone package manager (no group membership needed)
 - **k9s** - Terminal UI for Kubernetes
 
-## Usage
+## Quick Setup on Brev
+
+Copy and paste these commands for a fast setup:
 
 ```bash
+# 1) Update system and install git
+sudo apt-get update -y
+sudo apt-get install -y git
+
+# 2) Sparse-clone only k8s-local (avoids downloading all directories)
+git clone --depth=1 --filter=blob:none --sparse https://github.com/brevdev/setup-scripts.git
+cd setup-scripts
+git sparse-checkout set k8s-local
+
+# Confirm the files are present
+ls -la k8s-local
+cat k8s-local/README.md
+
+# 3) Execute the script
+cd k8s-local
 bash setup.sh
 ```
 
@@ -25,6 +42,22 @@ Takes ~3-5 minutes.
 - Works without group membership or `newgrp`
 
 kubectl and helm work in any terminal - no special setup needed!
+
+## Quick verification after the script finishes
+
+```bash
+# Ensure you're using the standalone binaries
+which kubectl      # should print: /usr/local/bin/kubectl
+which helm         # should print: /usr/local/bin/helm
+
+# If it shows /snap/bin/kubectl, remove the snap alias:
+sudo snap unalias kubectl
+
+# Ensure KUBECONFIG is set (the script will add it to ~/.bashrc)
+export KUBECONFIG=$HOME/.kube/config
+kubectl get nodes
+helm version
+```
 
 ## What you get
 
