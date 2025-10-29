@@ -13,7 +13,7 @@ microk8s with GPU support for local Kubernetes development.
 
 ## Quick Setup on Brev
 
-Copy and paste these commands for a fast setup:
+First, SSH into your Brev instance, then copy and paste these commands for a fast setup:
 
 ```bash
 # 1) Update system and install git
