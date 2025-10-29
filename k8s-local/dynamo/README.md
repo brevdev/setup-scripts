@@ -235,7 +235,7 @@ curl http://localhost:8000/v1/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "Qwen/Qwen3-0.6B",
-    "prompt": "Hello, how are you?",
+    "prompt": "Hello, I am Zombieland Lieutenant. Who are you?",
     "max_tokens": 50
   }'
 ```
@@ -245,7 +245,7 @@ Expected output:
 {
   "id": "cmpl-f359deae-c83e-44f4-835f-56bde7707250",
   "choices": [{
-    "text": " I'm doing well, thank you for asking! I'm here to help you with any questions...",
+    "text": " I will be the leader of the Zombieland unit, and I will be a strong leader. I will fight for the cause of the Zombieland. I will be a fighter and a leader. I will fight for the survival of",
     "index": 0,
     "finish_reason": "length"
   }],
