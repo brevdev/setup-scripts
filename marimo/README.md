@@ -14,14 +14,15 @@ Interactive notebook server with Marimo - a reactive Python notebook.
 ## Features
 
 - **Runs as systemd service** - Auto-starts with the system
-- **Accessible via web** - Default port 8080
+- **Secure by default** - Bound to localhost with token authentication
 - **Example notebooks included** - Ready to explore
 - **Battle-tested user detection** - Works with ubuntu, nvidia, shadeform users
 
-## ⚠️ Required Port
+## 🔒 Security
 
-To access from outside Brev, open:
-- **8080/tcp** (default marimo port)
+- **Localhost binding** - Service is bound to `127.0.0.1` only (not exposed to network)
+- **Token authentication** - Cryptographically secure token required for access
+- **Secure token storage** - Token stored in `~/.config/marimo/token` with restricted permissions (600)
 
 ## Usage
 
@@ -61,10 +62,41 @@ sudo systemctl stop marimo
 # View logs
 sudo journalctl -u marimo -f
 
-# Access notebooks
-http://localhost:8080
-# Or via Brev URL
+
+# View authentication token
+cat ~/.config/marimo/token
 ```
+
+## Access & Authentication
+
+### Local Access
+
+The service is bound to `localhost` (127.0.0.1) for security. Access it locally:
+
+```bash
+# Open in browser on the server
+http://localhost:8080
+```
+
+You'll be prompted for the authentication token. Retrieve it with:
+
+```bash
+cat ~/.config/marimo/token
+```
+
+### Remote Access via SSH Port Forwarding
+
+For secure remote access, use SSH port forwarding:
+
+```bash
+# From your local machine
+ssh -L 8080:localhost:8080 user@your-server
+
+# Then access in your local browser
+http://localhost:8080
+```
+
+The token is still required for authentication.
 
 ## Example notebooks
 
@@ -88,7 +120,7 @@ From [marimo-team/examples](https://github.com/marimo-team/examples):
 ## Advanced
 
 **Change the port:**
-Edit `/etc/systemd/system/marimo.service` and change `--port 8080` to your desired port, then:
+Edit `/etc/systemd/system/marimo.service` and change `MARIMO_PORT` environment variable, then:
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl restart marimo
@@ -112,11 +144,17 @@ sudo systemctl status marimo      # Check status
 **Can't access web UI:**
 - Check service is running: `sudo systemctl status marimo`
 - Check firewall: `sudo ufw status`
-- Try: `http://localhost:8080` or your Brev instance URL
+- Access locally: `http://localhost:8080`
+- For remote access, use SSH port forwarding (see above)
+
+**Authentication token not working:**
+- Verify token file exists: `ls -la ~/.config/marimo/token`
+- Check token permissions: `chmod 600 ~/.config/marimo/token`
+- View token: `cat ~/.config/marimo/token`
+- Restart service: `sudo systemctl restart marimo`
 
 **Marimo not found:**
 ```bash
 pipx list                     # Check if installed
 pipx install marimo           # Reinstall if needed
 ```
-

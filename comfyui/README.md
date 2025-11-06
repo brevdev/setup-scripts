@@ -19,11 +19,12 @@ Powerful node-based interface for Stable Diffusion image generation.
 - **Custom nodes** - Extensible with community plugins
 - **Multiple models** - Support for SD 1.5, SDXL, LoRAs, etc.
 - **Batch processing** - Generate multiple images
+- **Secure by default** - Bound to localhost for security
 
-## ⚠️ Required Port
+## 🔒 Security
 
-To access from outside Brev, open:
-- **8188/tcp** (ComfyUI web interface)
+- **Localhost binding** - Service is bound to `127.0.0.1` only (not exposed to network)
+- **Secure remote access** - Use SSH port forwarding for remote access
 
 ## Requirements
 
@@ -46,11 +47,34 @@ Takes ~5-10 minutes (downloads model).
 - **Models:** `~/ComfyUI/models/checkpoints`
 - **Service:** Auto-starts on boot
 
+## Access & Remote Access
+
+### Local Access
+
+The service is bound to `localhost` (127.0.0.1) for security. Access it locally:
+
+```bash
+# Open in browser on the server
+http://localhost:8188
+```
+
+### Remote Access via SSH Port Forwarding
+
+For secure remote access, use SSH port forwarding:
+
+```bash
+# From your local machine
+ssh -L 8188:localhost:8188 user@your-server
+
+# Then access in your local browser
+http://localhost:8188
+```
+
 ## Quick Start
 
 **Access the UI:**
 ```bash
-# Open in browser (or via your Brev URL with port 8188)
+# Open in browser (local or via SSH port forwarding)
 http://localhost:8188
 ```
 
@@ -268,7 +292,8 @@ sudo journalctl -u comfyui -n 50
 
 **Can't access UI:**
 - Check service: `sudo systemctl status comfyui`
-- Check port: `lsof -i :8188`
+- Verify localhost binding: `netstat -tlnp | grep 8188` (should show 127.0.0.1:8188)
+- For remote access, use SSH port forwarding (see above)
 - View logs: `sudo journalctl -u comfyui -f`
 
 ## Python API

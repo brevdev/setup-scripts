@@ -8,6 +8,8 @@ High-performance vector database for AI applications.
 - **Docker container** - Runs as background service
 - **Persistent storage** - Data saved to `~/qdrant_storage`
 - **Web dashboard** - Visual interface for managing collections
+- **API key authentication** - Secure access with auto-generated API key
+- **Localhost binding** - Service bound to 127.0.0.1 for security
 
 ## Features
 
@@ -19,11 +21,12 @@ High-performance vector database for AI applications.
 - **gRPC support** - High-performance option
 - **Python SDK** - Simple client library
 
-## ⚠️ Required Ports
+## 🔒 Security
 
-To access from outside Brev, open:
-- **6333/tcp** (HTTP API + Dashboard)
-- **6334/tcp** (gRPC - optional)
+- **Localhost binding** - Service is bound to `127.0.0.1` only (not exposed to network)
+- **API key authentication** - Cryptographically secure API key required for all operations
+- **API key storage** - Key saved to `~/.qdrant_api_key.env` with restricted permissions (600)
+- **Secure remote access** - Use SSH port forwarding for remote access
 
 ## Usage
 
@@ -41,6 +44,55 @@ Takes ~1-2 minutes.
 - **Storage:** `~/qdrant_storage`
 - **Examples:** `~/qdrant_example.py`, `~/qdrant_rag_example.py`
 
+## Retrieve API Key
+
+The API key is stored securely in `~/.qdrant_api_key.env`:
+
+```bash
+# View API key
+grep QDRANT_API_KEY ~/.qdrant_api_key.env
+
+# Or view the entire file
+cat ~/.qdrant_api_key.env
+
+# Use in your code
+source ~/.qdrant_api_key.env
+echo $QDRANT_API_KEY
+```
+
+**Note:** Keep this file secure! It has restricted permissions (600) by default.
+
+## Access & Remote Access
+
+### Local Access
+
+The service is bound to `localhost` (127.0.0.1) for security. Access it locally:
+
+```bash
+# Dashboard (requires API key)
+http://localhost:6333/dashboard
+
+# API endpoint
+http://localhost:6333
+```
+
+### Remote Access via SSH Port Forwarding
+
+For secure remote access, use SSH port forwarding:
+
+```bash
+# From your local machine - HTTP API + Dashboard
+ssh -L 6333:localhost:6333 user@your-server
+
+# From your local machine - gRPC (optional)
+ssh -L 6334:localhost:6334 user@your-server
+
+# Then access in your local browser
+http://localhost:6333/dashboard
+```
+
+The API key is still required for authentication.
+
 ## Quick Start
 
 **Install Python client:**
@@ -52,9 +104,19 @@ pip install qdrant-client
 ```python
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
+import os
 
-# Connect
-client = QdrantClient(host="localhost", port=6333)
+# Load API key
+with open(os.path.expanduser("~/.qdrant_api_key.env")) as f:
+    for line in f:
+        if "=" in line and not line.startswith("#"):
+            key, value = line.strip().split("=", 1)
+            os.environ[key] = value
+
+api_key = os.environ["QDRANT_API_KEY"]
+
+# Connect with API key
+client = QdrantClient(host="localhost", port=6333, api_key=api_key)
 
 # Create collection
 client.create_collection(
@@ -86,9 +148,19 @@ Complete RAG (Retrieval Augmented Generation) pipeline:
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 import openai
+import os
+
+# Load API key
+with open(os.path.expanduser("~/.qdrant_api_key.env")) as f:
+    for line in f:
+        if "=" in line and not line.startswith("#"):
+            key, value = line.strip().split("=", 1)
+            os.environ[key] = value
+
+api_key = os.environ["QDRANT_API_KEY"]
 
 # Setup
-client = QdrantClient(host="localhost", port=6333)
+client = QdrantClient(host="localhost", port=6333, api_key=api_key)
 openai.api_key = "your-key"
 
 # 1. Create collection
@@ -148,8 +220,18 @@ print(response.choices[0].message.content)
 from langchain_community.vectorstores import Qdrant
 from langchain_openai import OpenAIEmbeddings
 from qdrant_client import QdrantClient
+import os
 
-client = QdrantClient(host="localhost", port=6333)
+# Load API key
+with open(os.path.expanduser("~/.qdrant_api_key.env")) as f:
+    for line in f:
+        if "=" in line and not line.startswith("#"):
+            key, value = line.strip().split("=", 1)
+            os.environ[key] = value
+
+api_key = os.environ["QDRANT_API_KEY"]
+
+client = QdrantClient(host="localhost", port=6333, api_key=api_key)
 embeddings = OpenAIEmbeddings()
 
 # Create vector store
@@ -175,8 +257,18 @@ docs = vectorstore.similarity_search("query", k=3)
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.core import VectorStoreIndex, StorageContext
 from qdrant_client import QdrantClient
+import os
 
-client = QdrantClient(host="localhost", port=6333)
+# Load API key
+with open(os.path.expanduser("~/.qdrant_api_key.env")) as f:
+    for line in f:
+        if "=" in line and not line.startswith("#"):
+            key, value = line.strip().split("=", 1)
+            os.environ[key] = value
+
+api_key = os.environ["QDRANT_API_KEY"]
+
+client = QdrantClient(host="localhost", port=6333, api_key=api_key)
 
 # Create vector store
 vector_store = QdrantVectorStore(
@@ -276,8 +368,12 @@ client.download_snapshot("my_collection", snapshot_info.name)
 
 **Create collection:**
 ```bash
+# Load API key
+source ~/.qdrant_api_key.env
+
 curl -X PUT http://localhost:6333/collections/test_collection \
   -H 'Content-Type: application/json' \
+  -H "api-key: $QDRANT_API_KEY" \
   -d '{
     "vectors": {
       "size": 384,
@@ -288,8 +384,11 @@ curl -X PUT http://localhost:6333/collections/test_collection \
 
 **Insert point:**
 ```bash
+source ~/.qdrant_api_key.env
+
 curl -X PUT http://localhost:6333/collections/test_collection/points \
   -H 'Content-Type: application/json' \
+  -H "api-key: $QDRANT_API_KEY" \
   -d '{
     "points": [
       {"id": 1, "vector": [0.1, 0.2, ...], "payload": {"text": "example"}}
@@ -299,8 +398,11 @@ curl -X PUT http://localhost:6333/collections/test_collection/points \
 
 **Search:**
 ```bash
+source ~/.qdrant_api_key.env
+
 curl -X POST http://localhost:6333/collections/test_collection/points/search \
   -H 'Content-Type: application/json' \
+  -H "api-key: $QDRANT_API_KEY" \
   -d '{
     "vector": [0.1, 0.2, ...],
     "limit": 5
@@ -309,13 +411,18 @@ curl -X POST http://localhost:6333/collections/test_collection/points/search \
 
 ## Web Dashboard
 
-Access at `http://localhost:6333/dashboard`
+Access at `http://localhost:6333/dashboard` (requires API key)
 
 Features:
 - Browse collections
 - View points and payloads
 - Run searches visually
 - Monitor performance
+
+**Note:** You'll need to enter the API key when accessing the dashboard. Retrieve it with:
+```bash
+grep QDRANT_API_KEY ~/.qdrant_api_key.env
+```
 
 ## Manage Service
 
@@ -340,10 +447,16 @@ tar -czf qdrant_backup.tar.gz ~/qdrant_storage
 ## Troubleshooting
 
 **Connection refused:**
-```bash
-docker logs qdrant
-docker restart qdrant
-```
+- Verify service is running: `docker ps | grep qdrant`
+- Check localhost binding: `netstat -tlnp | grep 6333` (should show 127.0.0.1:6333)
+- For remote access, use SSH port forwarding (see above)
+- View logs: `docker logs qdrant`
+
+**API key not working:**
+- Verify API key file exists: `ls -la ~/.qdrant_api_key.env`
+- Check API key permissions: `chmod 600 ~/.qdrant_api_key.env`
+- View API key: `grep QDRANT_API_KEY ~/.qdrant_api_key.env`
+- Ensure API key is passed in requests (header: `api-key: <your-key>`)
 
 **Out of memory:**
 - Use quantization
@@ -354,6 +467,32 @@ docker restart qdrant
 - Check HNSW parameters
 - Ensure proper indexing
 - Monitor with dashboard
+
+**Can't access dashboard:**
+- Verify service is running: `docker ps | grep qdrant`
+- Check localhost binding: `netstat -tlnp | grep 6333`
+- For remote access, use SSH port forwarding (see above)
+- Ensure you have the API key (required for dashboard access)
+
+## Reset API Key
+
+If you need to reset the API key:
+
+```bash
+# Stop container
+docker stop qdrant
+
+# Remove API key file
+rm ~/.qdrant_api_key.env
+
+# Remove container (optional - this will delete data!)
+docker rm qdrant
+
+# Run setup script again
+bash setup.sh
+```
+
+**Warning:** Removing the container will delete all data unless you preserve the storage volume.
 
 ## Resources
 

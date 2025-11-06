@@ -127,7 +127,7 @@ cat > "$HOME/ComfyUI/start.sh" << 'EOF'
 #!/bin/bash
 cd ~/ComfyUI
 source venv/bin/activate
-python main.py --listen 0.0.0.0 --port 8188
+python main.py --listen 127.0.0.1 --port 8188
 EOF
 chmod +x "$HOME/ComfyUI/start.sh"
 
@@ -141,7 +141,7 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$HOME/ComfyUI
-ExecStart=$HOME/ComfyUI/venv/bin/python main.py --listen 0.0.0.0 --port 8188
+ExecStart=$HOME/ComfyUI/venv/bin/python main.py --listen 127.0.0.1 --port 8188
 Restart=on-failure
 
 [Install]

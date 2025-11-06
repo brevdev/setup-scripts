@@ -266,6 +266,40 @@ else
     MARIMO_BIN=$(which marimo 2>/dev/null || echo "$HOME/.local/bin/marimo")
 fi
 
+##### Generate secure authentication token #####
+(echo ""; echo "##### Generating secure authentication token #####"; echo "";)
+
+# Create config directory with proper permissions
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -u "$USER" mkdir -p "$HOME/.config/marimo" 2>/dev/null || mkdir -p "$HOME/.config/marimo"
+    chown -R "$USER:$USER" "$HOME/.config/marimo" 2>/dev/null || true
+else
+    mkdir -p "$HOME/.config/marimo"
+fi
+
+# Generate cryptographically secure token
+MARIMO_TOKEN=$(python3 -c "import secrets; print(secrets.token_hex(32))" 2>/dev/null)
+
+# Validate token generation
+if [ -z "$MARIMO_TOKEN" ]; then
+    echo "ERROR: Failed to generate authentication token"
+    exit 1
+fi
+
+# Store token securely with restricted permissions
+if [ "$(id -u)" -eq 0 ]; then
+    echo "$MARIMO_TOKEN" | sudo -u "$USER" tee "$HOME/.config/marimo/token" > /dev/null
+    chmod 600 "$HOME/.config/marimo/token"
+    chown "$USER:$USER" "$HOME/.config/marimo/token"
+else
+    echo "$MARIMO_TOKEN" > "$HOME/.config/marimo/token"
+    chmod 600 "$HOME/.config/marimo/token"
+fi
+
+(echo ""; echo "=========================================="; echo "  SECURITY: Authentication Token Generated"; echo "=========================================="; echo "";)
+(echo "Token location: $HOME/.config/marimo/token"; echo "";)
+
+
 sudo tee /etc/systemd/system/marimo.service > /dev/null << EOF
 [Unit]
 Description=Marimo Notebook Server
@@ -278,7 +312,8 @@ WorkingDirectory=$HOME/$NOTEBOOKS_DIR
 Environment="PATH=$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="HOME=$HOME"
 Environment="MARIMO_PORT=${MARIMO_PORT:-8080}"
-ExecStart=$MARIMO_BIN edit --host 0.0.0.0 --port \${MARIMO_PORT} --headless --no-token
+Environment="MARIMO_TOKEN=$MARIMO_TOKEN"
+ExecStart=$MARIMO_BIN edit --host 127.0.0.1 --port \${MARIMO_PORT} --headless --token --token-password \${MARIMO_TOKEN}
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -319,12 +354,18 @@ sleep 2
 (echo "==============================================================="; echo "";)
 (echo ""; echo "Notebooks Location: $HOME/$NOTEBOOKS_DIR"; echo "";)
 (echo "Access URL: http://localhost:${MARIMO_PORT:-8080}"; echo "";)
+(echo "Security: Service is bound to localhost (127.0.0.1) only"; echo "";)
+(echo "   Authentication token required"; echo "";)
 if [ "$NOTEBOOKS_COPIED" -gt 0 ]; then
     (echo "Custom Notebooks: $NOTEBOOKS_COPIED notebook(s) added"; echo "";)
 fi
-(echo ""; echo "⚠️  OPEN THIS PORT ON BREV: ${MARIMO_PORT:-8080}/tcp"; echo "";)
+(echo ""; echo "Remote Access:"; echo "";)
+(echo "   For remote access, use SSH port forwarding:"; echo "";)
+(echo "   ssh -L ${MARIMO_PORT:-8080}:localhost:${MARIMO_PORT:-8080} user@server"; echo "";)
+(echo "   Then access http://localhost:${MARIMO_PORT:-8080} from your local browser"; echo "";)
 (echo ""; echo "Useful commands:"; echo "";)
 (echo "  - Check status:  sudo systemctl status marimo"; echo "";)
 (echo "  - View logs:     sudo journalctl -u marimo -f"; echo "";)
 (echo "  - Restart:       sudo systemctl restart marimo"; echo "";)
+(echo "  - View token:    cat $HOME/.config/marimo/token"; echo "";)
 (echo ""; echo "==============================================================="; echo "";)
