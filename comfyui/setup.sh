@@ -46,7 +46,7 @@ fi
 # Install dependencies
 echo "Installing system dependencies..."
 sudo apt-get update -qq
-sudo apt-get install -y -qq git python3-pip python3-venv
+sudo apt-get install -y -qq git python3-pip python3-venv openssl
 
 # Clone ComfyUI
 if [ -d "$HOME/ComfyUI" ]; then
@@ -122,16 +122,57 @@ else
     echo "Model already exists, skipping download"
 fi
 
-# Create start script
-cat > "$HOME/ComfyUI/start.sh" << 'EOF'
+# Generate SSL/TLS certificate and key
+echo "Generating SSL/TLS certificate and key..."
+CERT_DIR="$HOME/ComfyUI/certs"
+mkdir -p "$CERT_DIR"
+cd "$CERT_DIR"
+
+# Get hostname or IP for certificate
+HOSTNAME=$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo "localhost")
+IP_ADDRESS=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "127.0.0.1")
+
+if [ ! -f "$CERT_DIR/key.pem" ] || [ ! -f "$CERT_DIR/cert.pem" ]; then
+    echo "Creating self-signed certificate (valid for 1 years)..."
+    if [ "$(id -u)" -eq 0 ]; then
+        sudo -H -u $USER openssl req -x509 -newkey rsa:4096 \
+            -keyout "$CERT_DIR/key.pem" \
+            -out "$CERT_DIR/cert.pem" \
+            -sha256 -days 365 -nodes \
+            -subj "/O=ComfyUI/OU=IT/CN=$HOSTNAME"
+    else
+        openssl req -x509 -newkey rsa:4096 \
+            -keyout "$CERT_DIR/key.pem" \
+            -out "$CERT_DIR/cert.pem" \
+            -sha256 -days 365 -nodes \
+            -subj "/O=ComfyUI/OU=IT/CN=$HOSTNAME"
+    fi
+    
+    # Set secure permissions
+    chmod 600 "$CERT_DIR/key.pem"
+    chmod 644 "$CERT_DIR/cert.pem"
+    
+    if [ "$(id -u)" -eq 0 ]; then
+        chown $USER:$USER "$CERT_DIR/key.pem" "$CERT_DIR/cert.pem"
+    fi
+    
+    echo "✓ SSL certificate and key generated"
+    echo "  Certificate: $CERT_DIR/cert.pem"
+    echo "  Private Key: $CERT_DIR/key.pem"
+else
+    echo "SSL certificate and key already exist, skipping generation"
+fi
+
+# Create start script with HTTPS support
+cat > "$HOME/ComfyUI/start.sh" << EOF
 #!/bin/bash
 cd ~/ComfyUI
 source venv/bin/activate
-python main.py --listen 127.0.0.1 --port 8188
+python main.py --listen localhost --port 8188 --tls-keyfile $CERT_DIR/key.pem --tls-certfile $CERT_DIR/cert.pem
 EOF
 chmod +x "$HOME/ComfyUI/start.sh"
 
-# Create systemd service
+# Create systemd service with HTTPS support
 sudo tee /etc/systemd/system/comfyui.service > /dev/null << EOF
 [Unit]
 Description=ComfyUI
@@ -141,7 +182,7 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$HOME/ComfyUI
-ExecStart=$HOME/ComfyUI/venv/bin/python main.py --listen 127.0.0.1 --port 8188
+ExecStart=$HOME/ComfyUI/venv/bin/python main.py --listen localhost --port 8188 --tls-keyfile $CERT_DIR/key.pem --tls-certfile $CERT_DIR/cert.pem
 Restart=on-failure
 
 [Install]
@@ -174,13 +215,15 @@ else
 fi
 
 echo ""
-echo "✅ ComfyUI ready!"
+echo "✅ ComfyUI ready with HTTPS enabled!"
 echo ""
-echo "Access: http://localhost:8188"
+echo "🔒 HTTPS Access: https://localhost:8188"
+echo ""
 echo "⚠️  Open port 8188/tcp to access from outside Brev"
 echo ""
 echo "Location: $HOME/ComfyUI"
 echo "Models: $HOME/ComfyUI/models/checkpoints"
+echo "SSL Certificates: $CERT_DIR"
 echo ""
 echo "✨ ComfyUI-Manager installed!"
 echo "   Click the 'Manager' button in the UI to:"
@@ -192,4 +235,8 @@ echo "Manage service:"
 echo "  sudo systemctl status comfyui"
 echo "  sudo journalctl -u comfyui -f"
 echo "  cd ~/ComfyUI && ./start.sh  # Manual start"
-
+echo ""
+echo "SSL Certificate Info:"
+echo "  Certificate: $CERT_DIR/cert.pem"
+echo "  Private Key: $CERT_DIR/key.pem"
+echo "  Valid for: 1 year"

@@ -6,8 +6,10 @@ Powerful node-based interface for Stable Diffusion image generation.
 
 - **ComfyUI** - Node-based UI for Stable Diffusion
 - **ComfyUI-Manager** - Model manager & custom node installer (⭐ **NEW**)
+- **OpenSSL** - For SSL certificate generation
 - **PyTorch** - With CUDA GPU support
 - **Stable Diffusion 1.5** - Starter model (pre-downloaded)
+- **SSL/TLS certificates** - Self-signed certificates for HTTPS access
 - **Systemd service** - Auto-starts with system
 - **Python virtual environment** - Clean isolation
 
@@ -23,7 +25,9 @@ Powerful node-based interface for Stable Diffusion image generation.
 
 ## 🔒 Security
 
+- **HTTPS/SSL encryption** - All traffic encrypted with TLS/SSL
 - **Localhost binding** - Service is bound to `127.0.0.1` only (not exposed to network)
+- **Self-signed certificates** - Automatically generated SSL certificates (valid for 1 year)
 - **Secure remote access** - Use SSH port forwarding for remote access
 
 ## Requirements
@@ -42,20 +46,21 @@ Takes ~5-10 minutes (downloads model).
 
 ## What you get
 
-- **Web UI:** `http://localhost:8188`
+- **Web UI:** `https://localhost:8188`
 - **Installation:** `~/ComfyUI`
 - **Models:** `~/ComfyUI/models/checkpoints`
+- **SSL certificates:** `~/ComfyUI/certs/`
 - **Service:** Auto-starts on boot
 
 ## Access & Remote Access
 
 ### Local Access
 
-The service is bound to `localhost` (127.0.0.1) for security. Access it locally:
+The service is bound to `localhost` (127.0.0.1) for security. Access it locally via HTTPS:
 
 ```bash
 # Open in browser on the server
-http://localhost:8188
+https://localhost:8188
 ```
 
 ### Remote Access via SSH Port Forwarding
@@ -67,7 +72,7 @@ For secure remote access, use SSH port forwarding:
 ssh -L 8188:localhost:8188 user@your-server
 
 # Then access in your local browser
-http://localhost:8188
+https://localhost:8188
 ```
 
 ## Quick Start
@@ -75,7 +80,7 @@ http://localhost:8188
 **Access the UI:**
 ```bash
 # Open in browser (local or via SSH port forwarding)
-http://localhost:8188
+https://localhost:8188
 ```
 
 **⭐ Download Models (using ComfyUI-Manager):**
@@ -292,7 +297,6 @@ sudo journalctl -u comfyui -n 50
 
 **Can't access UI:**
 - Check service: `sudo systemctl status comfyui`
-- Verify localhost binding: `netstat -tlnp | grep 8188` (should show 127.0.0.1:8188)
 - For remote access, use SSH port forwarding (see above)
 - View logs: `sudo journalctl -u comfyui -f`
 
@@ -310,7 +314,7 @@ workflow = {
 }
 
 response = requests.post(
-    "http://localhost:8188/prompt",
+    "https://localhost:8188/prompt",
     json={"prompt": workflow}
 )
 

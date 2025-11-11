@@ -23,16 +23,18 @@ Takes ~1-2 minutes (downloads Docker images).
 - User: `postgres`
 - Password: Auto-generated (stored in `~/.db_passwords.env`)
 - Database: `postgres`
+- SSL certificates: `~/database_certs/postgres/`
 
 **Redis:**
 - Host: `localhost:6379`
 - Password: Auto-generated (stored in `~/.db_passwords.env`)
+- TLS certificates: `~/database_certs/redis/`
 
 ## Access & Remote Access
 
 ### Local Access
 
-Both services are bound to `localhost` (127.0.0.1) for security. Access them locally:
+Both services are bound to `localhost` (127.0.0.1) for security and use SSL/TLS encryption:
 
 ```bash
 # PostgreSQL

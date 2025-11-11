@@ -9,6 +9,7 @@ High-performance vector database for AI applications.
 - **Persistent storage** - Data saved to `~/qdrant_storage`
 - **Web dashboard** - Visual interface for managing collections
 - **API key authentication** - Secure access with auto-generated API key
+- **SSL/TLS certificates** - Self-signed certificates for HTTPS access
 - **Localhost binding** - Service bound to 127.0.0.1 for security
 
 ## Features
@@ -23,9 +24,11 @@ High-performance vector database for AI applications.
 
 ## 🔒 Security
 
+- **HTTPS/SSL encryption** - All traffic encrypted with TLS/SSL
 - **Localhost binding** - Service is bound to `127.0.0.1` only (not exposed to network)
 - **API key authentication** - Cryptographically secure API key required for all operations
 - **API key storage** - Key saved to `~/.qdrant_api_key.env` with restricted permissions (600)
+- **Self-signed certificates** - Automatically generated SSL certificates (valid for 1 year)
 - **Secure remote access** - Use SSH port forwarding for remote access
 
 ## Usage
@@ -38,10 +41,11 @@ Takes ~1-2 minutes.
 
 ## What you get
 
-- **Dashboard:** `http://localhost:6333/dashboard`
-- **API endpoint:** `http://localhost:6333`
+- **Dashboard:** `https://localhost:6333/dashboard`
+- **API endpoint:** `https://localhost:6333`
 - **gRPC endpoint:** `localhost:6334`
 - **Storage:** `~/qdrant_storage`
+- **SSL certificates:** `~/qdrant_certs/`
 - **Examples:** `~/qdrant_example.py`, `~/qdrant_rag_example.py`
 
 ## Retrieve API Key
@@ -66,14 +70,14 @@ echo $QDRANT_API_KEY
 
 ### Local Access
 
-The service is bound to `localhost` (127.0.0.1) for security. Access it locally:
+The service is bound to `localhost` (127.0.0.1) for security. Access it locally via HTTPS:
 
 ```bash
 # Dashboard (requires API key)
-http://localhost:6333/dashboard
+https://localhost:6333/dashboard
 
 # API endpoint
-http://localhost:6333
+https://localhost:6333
 ```
 
 ### Remote Access via SSH Port Forwarding
@@ -88,7 +92,7 @@ ssh -L 6333:localhost:6333 user@your-server
 ssh -L 6334:localhost:6334 user@your-server
 
 # Then access in your local browser
-http://localhost:6333/dashboard
+https://localhost:6333/dashboard
 ```
 
 The API key is still required for authentication.
@@ -371,7 +375,7 @@ client.download_snapshot("my_collection", snapshot_info.name)
 # Load API key
 source ~/.qdrant_api_key.env
 
-curl -X PUT http://localhost:6333/collections/test_collection \
+curl -X PUT https://localhost:6333/collections/test_collection \
   -H 'Content-Type: application/json' \
   -H "api-key: $QDRANT_API_KEY" \
   -d '{
@@ -386,7 +390,7 @@ curl -X PUT http://localhost:6333/collections/test_collection \
 ```bash
 source ~/.qdrant_api_key.env
 
-curl -X PUT http://localhost:6333/collections/test_collection/points \
+curl -X PUT https://localhost:6333/collections/test_collection/points \
   -H 'Content-Type: application/json' \
   -H "api-key: $QDRANT_API_KEY" \
   -d '{
@@ -400,7 +404,7 @@ curl -X PUT http://localhost:6333/collections/test_collection/points \
 ```bash
 source ~/.qdrant_api_key.env
 
-curl -X POST http://localhost:6333/collections/test_collection/points/search \
+curl -X POST https://localhost:6333/collections/test_collection/points/search \
   -H 'Content-Type: application/json' \
   -H "api-key: $QDRANT_API_KEY" \
   -d '{
@@ -411,7 +415,7 @@ curl -X POST http://localhost:6333/collections/test_collection/points/search \
 
 ## Web Dashboard
 
-Access at `http://localhost:6333/dashboard` (requires API key)
+Access at `https://localhost:6333/dashboard` (requires API key)
 
 Features:
 - Browse collections
@@ -448,7 +452,6 @@ tar -czf qdrant_backup.tar.gz ~/qdrant_storage
 
 **Connection refused:**
 - Verify service is running: `docker ps | grep qdrant`
-- Check localhost binding: `netstat -tlnp | grep 6333` (should show 127.0.0.1:6333)
 - For remote access, use SSH port forwarding (see above)
 - View logs: `docker logs qdrant`
 
@@ -470,7 +473,6 @@ tar -czf qdrant_backup.tar.gz ~/qdrant_storage
 
 **Can't access dashboard:**
 - Verify service is running: `docker ps | grep qdrant`
-- Check localhost binding: `netstat -tlnp | grep 6333`
 - For remote access, use SSH port forwarding (see above)
 - Ensure you have the API key (required for dashboard access)
 
