@@ -105,6 +105,13 @@ if ! command -v pip3 &> /dev/null; then
     sudo apt-get install -y python3 python3-pip python3-venv
 fi
 
+##### Install OpenSSL and Nginx if not available #####
+if ! command -v openssl &> /dev/null || ! command -v nginx &> /dev/null; then
+    (echo ""; echo "##### Installing OpenSSL and Nginx #####"; echo "";)
+    sudo apt-get update
+    sudo apt-get install -y openssl nginx
+fi
+
 ##### Install Marimo #####
 (echo ""; echo "##### Installing Marimo #####"; echo "";)
 # Run as the detected user, not as root
@@ -266,6 +273,100 @@ else
     MARIMO_BIN=$(which marimo 2>/dev/null || echo "$HOME/.local/bin/marimo")
 fi
 
+##### Generate secure authentication token #####
+(echo ""; echo "##### Generating secure authentication token #####"; echo "";)
+
+# Create config directory with proper permissions
+if [ "$(id -u)" -eq 0 ]; then
+    sudo -u "$USER" mkdir -p "$HOME/.config/marimo" 2>/dev/null || mkdir -p "$HOME/.config/marimo"
+    chown -R "$USER:$USER" "$HOME/.config/marimo" 2>/dev/null || true
+else
+    mkdir -p "$HOME/.config/marimo"
+fi
+
+# Generate cryptographically secure token
+MARIMO_TOKEN=$(python3 -c "import secrets; print(secrets.token_hex(32))" 2>/dev/null)
+
+# Validate token generation
+if [ -z "$MARIMO_TOKEN" ]; then
+    echo "ERROR: Failed to generate authentication token"
+    exit 1
+fi
+
+# Store token securely with restricted permissions
+if [ "$(id -u)" -eq 0 ]; then
+    echo "$MARIMO_TOKEN" | sudo -u "$USER" tee "$HOME/.config/marimo/token" > /dev/null
+    chmod 600 "$HOME/.config/marimo/token"
+    chown "$USER:$USER" "$HOME/.config/marimo/token"
+else
+    echo "$MARIMO_TOKEN" > "$HOME/.config/marimo/token"
+    chmod 600 "$HOME/.config/marimo/token"
+fi
+
+(echo ""; echo "=========================================="; echo "  SECURITY: Authentication Token Generated"; echo "=========================================="; echo "";)
+(echo "Token location: $HOME/.config/marimo/token"; echo "";)
+
+##### Generate SSL/TLS certificate and key #####
+(echo ""; echo "##### Generating SSL/TLS certificate and key #####"; echo "";)
+
+CERT_DIR="$HOME/.config/marimo/certs"
+mkdir -p "$CERT_DIR"
+
+# Get hostname or IP for certificate
+HOSTNAME=$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo "localhost")
+
+if [ ! -f "$CERT_DIR/key.pem" ] || [ ! -f "$CERT_DIR/cert.pem" ]; then
+    echo "Creating self-signed certificate (valid for 1 years)..."
+    if [ "$(id -u)" -eq 0 ]; then
+        sudo -H -u "$USER" openssl req -x509 -newkey rsa:4096 \
+            -keyout "$CERT_DIR/key.pem" \
+            -out "$CERT_DIR/cert.pem" \
+            -sha256 -days 365 -nodes \
+            -subj "/C=US/ST=State/L=City/O=Marimo/OU=IT/CN=$HOSTNAME"
+    else
+        openssl req -x509 -newkey rsa:4096 \
+            -keyout "$CERT_DIR/key.pem" \
+            -out "$CERT_DIR/cert.pem" \
+            -sha256 -days 365 -nodes \
+            -subj "/C=US/ST=State/L=City/O=Marimo/OU=IT/CN=$HOSTNAME"
+    fi
+    
+    # Set secure permissions
+    chmod 600 "$CERT_DIR/key.pem"
+    chmod 644 "$CERT_DIR/cert.pem"
+    
+    if [ "$(id -u)" -eq 0 ]; then
+        chown "$USER:$USER" "$CERT_DIR/key.pem" "$CERT_DIR/cert.pem"
+    fi
+    
+    # Copy certificates to nginx-accessible location
+    sudo mkdir -p /etc/nginx/ssl
+    sudo cp "$CERT_DIR/cert.pem" /etc/nginx/ssl/marimo-cert.pem
+    sudo cp "$CERT_DIR/key.pem" /etc/nginx/ssl/marimo-key.pem
+    sudo chmod 644 /etc/nginx/ssl/marimo-cert.pem
+    sudo chmod 600 /etc/nginx/ssl/marimo-key.pem
+    sudo chown root:root /etc/nginx/ssl/marimo-cert.pem /etc/nginx/ssl/marimo-key.pem
+    
+    echo "✓ SSL certificate and key generated"
+    echo "  Certificate: $CERT_DIR/cert.pem (also copied to /etc/nginx/ssl/)"
+    echo "  Private Key: $CERT_DIR/key.pem (also copied to /etc/nginx/ssl/)"
+else
+    echo "SSL certificate and key already exist, skipping generation"
+    # Ensure nginx has access to certificates
+    if [ ! -f /etc/nginx/ssl/marimo-cert.pem ]; then
+        sudo mkdir -p /etc/nginx/ssl
+        sudo cp "$CERT_DIR/cert.pem" /etc/nginx/ssl/marimo-cert.pem
+        sudo cp "$CERT_DIR/key.pem" /etc/nginx/ssl/marimo-key.pem
+        sudo chmod 644 /etc/nginx/ssl/marimo-cert.pem
+        sudo chmod 600 /etc/nginx/ssl/marimo-key.pem
+        sudo chown root:root /etc/nginx/ssl/marimo-cert.pem /etc/nginx/ssl/marimo-key.pem
+    fi
+fi
+
+# Marimo runs on HTTP (no native SSL support), nginx will handle HTTPS
+MARIMO_HTTP_PORT=${MARIMO_PORT:-8080}
+MARIMO_HTTPS_PORT=${MARIMO_HTTPS_PORT:-8443}
+
 sudo tee /etc/systemd/system/marimo.service > /dev/null << EOF
 [Unit]
 Description=Marimo Notebook Server
@@ -277,8 +378,9 @@ User=$USER
 WorkingDirectory=$HOME/$NOTEBOOKS_DIR
 Environment="PATH=$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="HOME=$HOME"
-Environment="MARIMO_PORT=${MARIMO_PORT:-8080}"
-ExecStart=$MARIMO_BIN edit --host 0.0.0.0 --port \${MARIMO_PORT} --headless --no-token
+Environment="MARIMO_PORT=$MARIMO_HTTP_PORT"
+Environment="MARIMO_TOKEN=$MARIMO_TOKEN"
+ExecStart=$MARIMO_BIN edit --host 127.0.0.1 --port $MARIMO_HTTP_PORT --headless --token --token-password \${MARIMO_TOKEN}
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -288,6 +390,57 @@ SyslogIdentifier=marimo
 [Install]
 WantedBy=multi-user.target
 EOF
+
+##### Configure Nginx as reverse proxy for HTTPS #####
+(echo ""; echo "##### Configuring Nginx reverse proxy for HTTPS #####"; echo "";)
+
+sudo tee /etc/nginx/sites-available/marimo-ssl > /dev/null << EOF
+server {
+    listen $MARIMO_HTTPS_PORT ssl http2;
+    listen [::]:$MARIMO_HTTPS_PORT ssl http2;
+    server_name localhost;
+
+    # SSL/TLS configuration
+    ssl_certificate /etc/nginx/ssl/marimo-cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/marimo-key.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # Proxy settings
+    location / {
+        # Set Host with port so Marimo generates correct redirect URLs
+        proxy_set_header    Host \$host:$MARIMO_HTTPS_PORT;
+        proxy_set_header    X-Real-IP \$remote_addr;
+        proxy_set_header    X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header    X-Forwarded-Proto \$scheme;
+        proxy_set_header    X-Forwarded-Host \$host:$MARIMO_HTTPS_PORT;
+        proxy_set_header    X-Forwarded-Port $MARIMO_HTTPS_PORT;
+        proxy_pass          http://127.0.0.1:$MARIMO_HTTP_PORT;
+        
+        # Required for WebSocket support
+        proxy_http_version  1.1;
+        proxy_set_header    Upgrade \$http_upgrade;
+        proxy_set_header    Connection "upgrade";
+        proxy_read_timeout  600;
+        
+        # Rewrite redirects to include port
+        proxy_redirect      http://\$host/ http://\$host:$MARIMO_HTTPS_PORT/;
+    }
+}
+EOF
+
+# Enable the site
+sudo ln -sf /etc/nginx/sites-available/marimo-ssl /etc/nginx/sites-enabled/marimo-ssl
+
+# Remove default nginx site if it exists
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Test nginx configuration
+sudo nginx -t
+
+# Reload nginx
+sudo systemctl reload nginx || sudo systemctl restart nginx
 
 ##### Fix ownership of shell config files if running as root #####
 if [ "$(id -u)" -eq 0 ] && [ -n "$USER" ]; then
@@ -309,22 +462,42 @@ fi
 (echo ""; echo "##### Enabling and starting Marimo service #####"; echo "";)
 sudo systemctl daemon-reload
 sudo systemctl enable marimo.service 2>/dev/null || true
-sudo systemctl start marimo.service
+if systemctl is-active --quiet marimo.service; then
+    echo "Marimo service already running, restarting..."
+    sudo systemctl restart marimo.service
+else
+    echo "Starting Marimo service..."
+    sudo systemctl start marimo.service  
+fi
 
 # Wait for service to start
 sleep 2
 
 (echo ""; echo ""; echo "==============================================================="; echo "";)
-(echo "  Setup Complete! Marimo is now running"; echo "";)
+(echo "  Setup Complete! Marimo is now running with HTTPS enabled"; echo "";)
 (echo "==============================================================="; echo "";)
 (echo ""; echo "Notebooks Location: $HOME/$NOTEBOOKS_DIR"; echo "";)
-(echo "Access URL: http://localhost:${MARIMO_PORT:-8080}"; echo "";)
+(echo "🔒 HTTPS Access: https://localhost:$MARIMO_HTTPS_PORT"; echo "";)
+(echo "Security: Service is bound to localhost (127.0.0.1) only"; echo "";)
+(echo "   Authentication token required"; echo "";)
 if [ "$NOTEBOOKS_COPIED" -gt 0 ]; then
     (echo "Custom Notebooks: $NOTEBOOKS_COPIED notebook(s) added"; echo "";)
 fi
-(echo ""; echo "⚠️  OPEN THIS PORT ON BREV: ${MARIMO_PORT:-8080}/tcp"; echo "";)
+(echo ""; echo "Remote Access:"; echo "";)
+(echo "   Direct HTTPS access: https://<server-ip>:$MARIMO_HTTPS_PORT"; echo "";)
+(echo "   Or use SSH port forwarding:"; echo "";)
+(echo "   ssh -L $MARIMO_HTTPS_PORT:localhost:$MARIMO_HTTPS_PORT user@server"; echo "";)
+(echo "   Then access https://localhost:$MARIMO_HTTPS_PORT from your local browser"; echo "";)
 (echo ""; echo "Useful commands:"; echo "";)
-(echo "  - Check status:  sudo systemctl status marimo"; echo "";)
-(echo "  - View logs:     sudo journalctl -u marimo -f"; echo "";)
-(echo "  - Restart:       sudo systemctl restart marimo"; echo "";)
+(echo "  - Check Marimo status:  sudo systemctl status marimo"; echo "";)
+(echo "  - Check Nginx status:   sudo systemctl status nginx"; echo "";)
+(echo "  - View Marimo logs:     sudo journalctl -u marimo -f"; echo "";)
+(echo "  - View Nginx logs:      sudo tail -f /var/log/nginx/error.log"; echo "";)
+(echo "  - Restart Marimo:       sudo systemctl restart marimo"; echo "";)
+(echo "  - Restart Nginx:        sudo systemctl restart nginx"; echo "";)
+(echo "  - View token:          cat $HOME/.config/marimo/token"; echo "";)
+(echo ""; echo "SSL Certificate Info:"; echo "";)
+(echo "  Certificate: $CERT_DIR/cert.pem"; echo "";)
+(echo "  Private Key: $CERT_DIR/key.pem"; echo "";)
+(echo "  Valid for: 1 year"; echo "";)
 (echo ""; echo "==============================================================="; echo "";)
