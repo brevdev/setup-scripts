@@ -109,10 +109,10 @@ cat > "$VLLM_DIR/start.sh" << 'EOF'
 set -e
 
 # Load config
-source ~/vllm-server/config.env
+source "$HOME/vllm-server/config.env"
 
 # Activate venv
-source ~/vllm-server/venv/bin/activate
+source "$HOME/vllm-server/venv/bin/activate"
 
 # Set HuggingFace cache
 export HF_HOME="$HOME/.cache/huggingface"
