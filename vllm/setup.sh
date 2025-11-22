@@ -38,7 +38,15 @@ echo "User: $USER | Home: $HOME"
 if command -v nvidia-smi &> /dev/null; then
     GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)
     GPU_COUNT=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
+    GPU_MEMORY=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader | head -1 | awk '{print $1}')
     echo "✓ GPU detected: $GPU_NAME (Count: $GPU_COUNT)"
+    echo "✓ GPU memory: ${GPU_MEMORY}MB"
+    
+    # Warn if memory might be tight
+    if [ "$GPU_MEMORY" -lt 12000 ]; then
+        echo "⚠️  WARNING: GPU has <12GB memory. Default model (Mistral 7B) may not fit."
+        echo "   Consider using a smaller model like: microsoft/Phi-3-mini-4k-instruct"
+    fi
 else
     echo "❌ ERROR: NVIDIA GPU required for vLLM"
     exit 1
@@ -76,7 +84,8 @@ cat > "$VLLM_DIR/config.env" << 'EOF'
 # Edit these values and restart the service: sudo systemctl restart vllm
 
 # Model to serve (Hugging Face model ID)
-MODEL_NAME="meta-llama/Llama-3.2-3B-Instruct"
+# Using Mistral 7B - no token required, excellent quality
+MODEL_NAME="mistralai/Mistral-7B-Instruct-v0.3"
 
 # API settings
 HOST="0.0.0.0"
@@ -148,7 +157,10 @@ mkdir -p "$HOME/vllm-examples"
 
 cat > "$HOME/vllm-examples/test_api.py" << 'EOF'
 #!/usr/bin/env python3
-"""Test vLLM API with OpenAI client"""
+"""Test vLLM API with OpenAI client
+
+Requires: pip install openai>=1.0.0
+"""
 from openai import OpenAI
 
 # Point to local vLLM server
@@ -159,7 +171,7 @@ client = OpenAI(
 
 # Test chat completion
 response = client.chat.completions.create(
-    model="meta-llama/Llama-3.2-3B-Instruct",  # Use your model name
+    model="mistralai/Mistral-7B-Instruct-v0.3",  # Use your model name
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "What is vLLM?"}
@@ -185,7 +197,7 @@ client = OpenAI(
 
 print("Streaming response:\n")
 stream = client.chat.completions.create(
-    model="meta-llama/Llama-3.2-3B-Instruct",
+    model="mistralai/Mistral-7B-Instruct-v0.3",
     messages=[{"role": "user", "content": "Write a short poem about GPUs."}],
     stream=True,
     max_tokens=200
@@ -205,7 +217,7 @@ cat > "$HOME/vllm-examples/curl_test.sh" << 'EOF'
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "meta-llama/Llama-3.2-3B-Instruct",
+    "model": "mistralai/Mistral-7B-Instruct-v0.3",
     "messages": [
       {"role": "system", "content": "You are a helpful assistant."},
       {"role": "user", "content": "Hello! What can you do?"}
@@ -253,13 +265,14 @@ echo "⚠️  First start downloads the model (~3-10GB) - check logs!"
 echo "⚠️  To access from outside Brev, open port: 8000/tcp"
 echo ""
 echo "Quick test (after starting):"
+echo "   pip install openai  # If not already installed"
 echo "   python3 $HOME/vllm-examples/test_api.py"
 echo "   bash $HOME/vllm-examples/curl_test.sh"
 echo ""
-echo "Popular models to try:"
-echo "   • meta-llama/Llama-3.2-3B-Instruct (3B - fast, low memory)"
-echo "   • meta-llama/Llama-3.1-8B-Instruct (8B - balanced)"
-echo "   • mistralai/Mistral-7B-Instruct-v0.3 (7B - good quality)"
-echo "   • Qwen/Qwen2.5-7B-Instruct (7B - excellent coding)"
+echo "Popular models to try (edit config.env):"
+echo "   • mistralai/Mistral-7B-Instruct-v0.3 (default - no token needed)"
+echo "   • microsoft/Phi-3-mini-4k-instruct (3.8B - smaller, ~6GB VRAM)"
+echo "   • Qwen/Qwen2.5-7B-Instruct (7B - excellent for coding)"
+echo "   • meta-llama/Llama-3.2-3B-Instruct (3B - needs HF token)"
 echo ""
 
