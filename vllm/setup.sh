@@ -230,9 +230,9 @@ chmod +x "$HOME/vllm-examples/curl_test.sh"
 
 # Fix permissions if running as root
 if [ "$(id -u)" -eq 0 ]; then
-    chown -R $USER:$USER "$VLLM_DIR"
-    chown -R $USER:$USER "$HOME/vllm-examples"
-    chown -R $USER:$USER "$HOME/.cache/huggingface" 2>/dev/null || true
+    chown -R "$USER:$USER" "$VLLM_DIR"
+    chown -R "$USER:$USER" "$HOME/vllm-examples"
+    chown -R "$USER:$USER" "$HOME/.cache/huggingface" 2>/dev/null || true
 fi
 
 # Reload systemd and enable service (but don't start yet)
