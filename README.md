@@ -107,6 +107,24 @@ cd marimo && bash setup.sh
 **Time:** ~2-3 minutes  
 **Port:** 8080/tcp for web access
 
+### ⚡ vLLM
+```bash
+cd vllm && bash setup.sh
+```
+**Installs:** High-performance LLM inference server (OpenAI-compatible API)  
+**Time:** ~8-10 minutes  
+**Port:** 8000/tcp for API access  
+**Note:** Set `VLLM_MODEL` to change model
+
+### 🏎️ TensorRT-LLM
+```bash
+cd tensorrt-llm && bash setup.sh
+```
+**Installs:** NVIDIA's optimized LLM inference engine (OpenAI-compatible API)  
+**Time:** ~8-10 minutes (engine building on first run)  
+**Port:** 8000/tcp for API access  
+**Note:** Set `TRTLLM_MODEL` to change model
+
 ### 🛡️ earlyoom
 ```bash
 cd earlyoom && bash setup.sh
@@ -229,6 +247,24 @@ docker exec -it postgres psql -U postgres
 docker exec -it redis redis-cli
 ```
 
+**High-performance LLM serving with vLLM:**
+```bash
+cd vllm && bash setup.sh
+# Then:
+curl http://localhost:8000/v1/models
+python3 ~/vllm-examples/chat.py
+bash ~/vllm-examples/test_api.sh
+```
+
+**Optimized LLM inference with TensorRT-LLM:**
+```bash
+cd tensorrt-llm && bash setup.sh
+# Then:
+curl http://localhost:8000/v1/models
+python3 ~/trtllm-examples/chat.py
+bash ~/trtllm-examples/test_api.sh
+```
+
 **OOM protection with earlyoom:**
 ```bash
 cd earlyoom && bash setup.sh
@@ -280,6 +316,12 @@ brev-setup-scripts/
 │   └── README.md
 ├── earlyoom/
 │   ├── setup.sh                 # Early OOM daemon
+│   └── README.md
+├── vllm/
+│   ├── setup.sh                 # vLLM inference server
+│   └── README.md
+├── tensorrt-llm/
+│   ├── setup.sh                 # TensorRT-LLM inference server
 │   └── README.md
 └── rapids/
     ├── setup.sh                 # RAPIDS GPU-accelerated data science
